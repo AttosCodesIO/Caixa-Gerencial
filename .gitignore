@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+build/
+*/dist/
+*/build/
+
+# Vite cache
+.vite/
+*/.vite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+*.lcov
+
+# Temporary files
+*.tmp
+*.temp
+
+# SQLite databases
+petty_cash.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Packaging artifacts
+*.tar.gz
+*.zip
+
+# TypeScript build info
+*.tsbuildinfo
+.vercel
+.env*.local
