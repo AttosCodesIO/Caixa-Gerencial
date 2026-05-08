@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Edit2,
   Printer,
+  Copy,
   X,
   Wallet,
   DollarSign,
@@ -135,6 +136,20 @@ export default function Transactions() {
       description: t.description,
     });
     setEditingId(t.id);
+    setIsModalOpen(true);
+  };
+
+  const handleDuplicate = (t: Transaction) => {
+    setFormData({
+      date: t.date,
+      type: t.amount < 0 ? 'expense' : 'income',
+      amount: maskCurrency(Math.abs(t.amount).toFixed(2).replace('.', '')),
+      payee_id: t.payee_id?.toString() || '',
+      project_id: t.project_id?.toString() || '',
+      classification_id: t.classification_id?.toString() || '',
+      description: t.description,
+    });
+    setEditingId(null);
     setIsModalOpen(true);
   };
 
@@ -471,6 +486,13 @@ export default function Transactions() {
                           title="Editar"
                         >
                           <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDuplicate(t)}
+                          className="p-2 text-neutral-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Duplicar"
+                        >
+                          <Copy className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(t.id)}

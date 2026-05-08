@@ -63,3 +63,5 @@ petty_cash.db
 *.tsbuildinfo
 .vercel
 .env*.local
+
+.vercel

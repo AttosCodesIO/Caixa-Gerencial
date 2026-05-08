@@ -29,8 +29,13 @@ export function gerarReciboSalario(
   formatCurrency: (v: number) => string,
   localizacao: string,
 ) {
-  const { dia, mesNome, ano } = parseDateBRT(t.date);
+  const { dia, mesIdx, mesNome, ano } = parseDateBRT(t.date);
   const valorAbs = Math.abs(t.amount);
+
+  // Referência = mês anterior ao lançamento (nunca o mês atual)
+  const refMesIdx = mesIdx === 0 ? 11 : mesIdx - 1;
+  const refAno = mesIdx === 0 ? String(parseInt(ano, 10) - 1) : ano;
+  const refMesNome = MESES[refMesIdx];
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -83,7 +88,7 @@ export function gerarReciboSalario(
         <div class="valor">${formatCurrency(valorAbs)}</div>
         <div class="extenso">(${valorPorExtenso(valorAbs)})</div>
       </div>
-      <div class="field"><strong>Referente ao mês/ano:</strong> ${mesNome} / ${ano}</div>
+      <div class="field"><strong>Referente ao mês/ano:</strong> ${refMesNome} / ${refAno}</div>
     </div>
     <div class="texto-legal">
       Recebi da empresa/empregador acima identificado a importância líquida discriminada neste recibo, referente ao pagamento do meu salário do período mencionado, para o qual dou plena e geral quitação.
