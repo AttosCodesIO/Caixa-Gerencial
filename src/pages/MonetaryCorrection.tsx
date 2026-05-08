@@ -13,32 +13,35 @@ export default function MonetaryCorrection() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<CalculationEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressTotal, setProgressTotal] = useState(0);
   const [tableName, setTableName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  const CONCURRENCY = 3;
+
   const handleCalculate = async (newEntries: Partial<CalculationEntry>[]) => {
     setIsProcessing(true);
-    const results: CalculationEntry[] = [];
-    
-    for (const entry of newEntries) {
+    setProgress(0);
+    setProgressTotal(newEntries.length);
+
+    const processEntry = async (entry: Partial<CalculationEntry>): Promise<CalculationEntry> => {
       const id = crypto.randomUUID();
       try {
         const factors = await fetchBcbData(
           entry.indexType || 'SELIC',
           entry.startDate!,
-          entry.endDate!
+          entry.endDate!,
         );
-        
         const { correctedValue, interestValue, totalPercentage } = calculateCorrection(
           entry.originalValue || 0,
           factors,
           entry.indexType || 'SELIC',
           entry.additionalInterestRate || 0,
           entry.startDate!,
-          entry.endDate!
+          entry.endDate!,
         );
-
-        results.push({
+        return {
           id,
           originalValue: entry.originalValue!,
           startDate: entry.startDate!,
@@ -48,11 +51,11 @@ export default function MonetaryCorrection() {
           correctedValue,
           interestValue,
           totalPercentage,
-          status: 'SUCCESS'
-        } as CalculationEntry);
+          status: 'SUCCESS',
+        } as CalculationEntry;
       } catch (error) {
         console.error(error);
-        results.push({
+        return {
           id,
           originalValue: entry.originalValue!,
           startDate: entry.startDate!,
@@ -60,17 +63,25 @@ export default function MonetaryCorrection() {
           indexType: entry.indexType || 'SELIC',
           additionalInterestRate: entry.additionalInterestRate || 0,
           status: 'ERROR',
-          errorMessage: 'Erro ao buscar índice'
-        } as CalculationEntry);
+          errorMessage: 'Erro ao buscar índice',
+        } as CalculationEntry;
       }
+    };
+
+    const results: CalculationEntry[] = [];
+    for (let i = 0; i < newEntries.length; i += CONCURRENCY) {
+      const batch = newEntries.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.all(batch.map(processEntry));
+      results.push(...batchResults);
+      setProgress(Math.min(i + CONCURRENCY, newEntries.length));
     }
-    
-    setEntries(prev => [...prev, ...results]);
+
+    setEntries((prev) => [...prev, ...results]);
     setIsProcessing(false);
   };
 
   const handleRemove = (id: string) => {
-    setEntries(prev => prev.filter(e => e.id !== id));
+    setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -89,16 +100,18 @@ export default function MonetaryCorrection() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">Correção Monetária</h1>
-          <p className="text-neutral-500 mt-1">Cálculo e atualização de valores com base em índices oficiais do BCB.</p>
+          <p className="text-neutral-500 mt-1">
+            Cálculo e atualização de valores com base em índices oficiais do BCB.
+          </p>
         </div>
-        
+
         {entries.length > 0 && (
           <form onSubmit={handleSave} className="flex items-center gap-2">
             <input
               type="text"
               required
               value={tableName}
-              onChange={e => setTableName(e.target.value)}
+              onChange={(e) => setTableName(e.target.value)}
               placeholder="Nome da Tabela"
               className="px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
             />
@@ -114,11 +127,11 @@ export default function MonetaryCorrection() {
         )}
       </div>
 
-      <BatchCalc onCalculate={handleCalculate} isProcessing={isProcessing} />
-      
+      <BatchCalc onCalculate={handleCalculate} isProcessing={isProcessing} progress={progress} progressTotal={progressTotal} />
+
       {entries.length > 0 && (
         <>
-          <DashboardSummary data={entries.filter(e => e.status === 'SUCCESS')} />
+          <DashboardSummary data={entries.filter((e) => e.status === 'SUCCESS')} />
           <ResultDisplay entries={entries} onRemove={handleRemove} />
         </>
       )}

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx vercel:*)",
+      "Bash(npx supabase:*)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}

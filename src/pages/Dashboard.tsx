@@ -1,18 +1,34 @@
 import { useState, useEffect } from 'react';
 import { format, subMonths, addMonths, subYears, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Wallet,
+} from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { getProjects, getClassifications, getBalance } from '../lib/api';
+import { Project, Classification } from '../types';
 
 export default function Dashboard() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
-  const [data, setData] = useState<any>(null);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [classifications, setClassifications] = useState<any[]>([]);
+  const [data, setData] = useState<{
+    initialBalance: number;
+    income: number;
+    expense: number;
+    finalBalance: number;
+    expensesByProject: Record<string, number>;
+    expensesByClassification: Record<string, number>;
+  } | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [classifications, setClassifications] = useState<Classification[]>([]);
 
-  const periodStr = viewMode === 'month' ? format(currentDate, 'yyyy-MM') : format(currentDate, 'yyyy');
+  const periodStr =
+    viewMode === 'month' ? format(currentDate, 'yyyy-MM') : format(currentDate, 'yyyy');
 
   useEffect(() => {
     getProjects().then(setProjects);
@@ -26,37 +42,59 @@ export default function Dashboard() {
   const handlePrev = () => {
     setCurrentDate(viewMode === 'month' ? subMonths(currentDate, 1) : subYears(currentDate, 1));
   };
-  
+
   const handleNext = () => {
     setCurrentDate(viewMode === 'month' ? addMonths(currentDate, 1) : addYears(currentDate, 1));
   };
 
   if (!data) return <div className="p-8 text-center text-neutral-500">Carregando...</div>;
 
-  const formatCurrency = (value: number) => 
+  const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   // Paleta de cores vibrantes com alto contraste para melhorar acessibilidade
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
-  const COLORS_ALT = ['#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#10b981', '#ef4444', '#3b82f6', '#f97316'];
+  const COLORS = [
+    '#3b82f6',
+    '#10b981',
+    '#f59e0b',
+    '#ef4444',
+    '#8b5cf6',
+    '#ec4899',
+    '#06b6d4',
+    '#f97316',
+  ];
+  const COLORS_ALT = [
+    '#8b5cf6',
+    '#f59e0b',
+    '#06b6d4',
+    '#ec4899',
+    '#10b981',
+    '#ef4444',
+    '#3b82f6',
+    '#f97316',
+  ];
 
-  const projectChartData = Object.entries(data.expensesByProject || {}).map(([projectId, amount], index) => {
-    const project = projects.find(p => p.id === Number(projectId));
-    return {
-      name: project ? project.name : 'Sem Projeto',
-      value: amount,
-      color: COLORS[index % COLORS.length]
-    };
-  });
+  const projectChartData = Object.entries(data.expensesByProject || {}).map(
+    ([projectId, amount], index) => {
+      const project = projects.find((p) => p.id === Number(projectId));
+      return {
+        name: project ? project.name : 'Sem Projeto',
+        value: amount,
+        color: COLORS[index % COLORS.length],
+      };
+    },
+  );
 
-  const classificationChartData = Object.entries(data.expensesByClassification || {}).map(([classId, amount], index) => {
-    const classification = classifications.find(c => c.id === Number(classId));
-    return {
-      name: classification ? classification.name : 'Sem Classificação',
-      value: amount,
-      color: COLORS_ALT[index % COLORS_ALT.length]
-    };
-  });
+  const classificationChartData = Object.entries(data.expensesByClassification || {}).map(
+    ([classId, amount], index) => {
+      const classification = classifications.find((c) => c.id === Number(classId));
+      return {
+        name: classification ? classification.name : 'Sem Classificação',
+        value: amount,
+        color: COLORS_ALT[index % COLORS_ALT.length],
+      };
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -65,7 +103,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-neutral-900">Dashboard Gerencial</h1>
           <p className="text-neutral-500">Visão geral do caixa em espécie</p>
         </div>
-        
+
         <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-neutral-200">
           <select
             value={viewMode}
@@ -76,13 +114,21 @@ export default function Dashboard() {
             <option value="year">Anual</option>
           </select>
           <div className="w-px h-4 bg-neutral-200 mx-1"></div>
-          <button onClick={handlePrev} className="p-1 hover:bg-neutral-100 rounded-lg text-neutral-600">
+          <button
+            onClick={handlePrev}
+            className="p-1 hover:bg-neutral-100 rounded-lg text-neutral-600"
+          >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <span className="font-medium text-neutral-700 min-w-[120px] text-center capitalize">
-            {viewMode === 'month' ? format(currentDate, 'MMMM yyyy', { locale: ptBR }) : format(currentDate, 'yyyy')}
+            {viewMode === 'month'
+              ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
+              : format(currentDate, 'yyyy')}
           </span>
-          <button onClick={handleNext} className="p-1 hover:bg-neutral-100 rounded-lg text-neutral-600">
+          <button
+            onClick={handleNext}
+            className="p-1 hover:bg-neutral-100 rounded-lg text-neutral-600"
+          >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
@@ -96,7 +142,9 @@ export default function Dashboard() {
               <Wallet className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-neutral-900 mt-4">{formatCurrency(data.initialBalance)}</p>
+          <p className="text-2xl font-bold text-neutral-900 mt-4">
+            {formatCurrency(data.initialBalance)}
+          </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200">
@@ -150,9 +198,13 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
                   />
                   <Legend />
                 </PieChart>
@@ -184,9 +236,13 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: 'none',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                    }}
                   />
                   <Legend />
                 </PieChart>

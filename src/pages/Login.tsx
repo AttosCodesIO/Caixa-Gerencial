@@ -1,7 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -20,7 +19,9 @@ export default function Login() {
 
     if (error) {
       if (error.message === 'Email not confirmed' || error.message.includes('confirmed')) {
-        setError('Por favor, confirme seu e-mail através do link que enviamos antes de fazer login. (Ou desative a confirmação de e-mail no painel do Supabase)');
+        setError(
+          'Por favor, confirme seu e-mail através do link que enviamos antes de fazer login. (Ou desative a confirmação de e-mail no painel do Supabase)',
+        );
       } else {
         setError(error.message || 'E-mail ou senha inválidos.');
       }
@@ -42,7 +43,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center bg-white rounded-2xl px-8 py-4 mb-5 shadow-lg">
             <img src="/logoAttos.jpeg" alt="Attos" className="h-12 w-auto" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Caixa Gerencial</h1>
+          <h1 className="text-2xl font-bold text-white">Gestão Financeira</h1>
           <p className="text-neutral-400 mt-2">Faça login para acessar o sistema</p>
         </div>
 
@@ -121,21 +122,13 @@ export default function Login() {
 
           {/* Footer do card */}
           <div className="px-8 py-4 bg-white/5 border-t border-white/10">
-            <p className="text-center text-neutral-400 text-sm mb-2">
-              Não tem uma conta?{' '}
-              <Link to="/register" className="text-white hover:underline font-medium">
-                Cadastre-se
-              </Link>
-            </p>
-            <p className="text-center text-neutral-500 text-xs">
-              Gestão Financeira Segura
-            </p>
+            <p className="text-center text-neutral-500 text-xs">Gestão Financeira Segura</p>
           </div>
         </div>
 
         {/* Footer */}
         <p className="text-center text-neutral-500 text-xs mt-6">
-          © 2026 Attos · Caixa Gerencial
+          © 2026 Attos · Gestão Financeira
         </p>
       </div>
     </div>

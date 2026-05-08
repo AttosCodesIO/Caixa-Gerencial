@@ -3,84 +3,64 @@ import { supabase } from './supabase';
 // ==================== PAYEES ====================
 
 export async function getPayees() {
-  const { data, error } = await supabase
-    .from('payees')
-    .select('*')
-    .order('name');
+  const { data, error } = await supabase.from('payees').select('*').order('name');
   if (error) throw error;
   return data;
 }
 
-export async function createPayee(payee: { name: string; type: string; document?: string; cargo?: string; endereco?: string }) {
-  const { data, error } = await supabase
-    .from('payees')
-    .insert(payee)
-    .select()
-    .single();
+export async function createPayee(payee: {
+  name: string;
+  type: string;
+  document?: string;
+  cargo?: string;
+  endereco?: string;
+}) {
+  const { data, error } = await supabase.from('payees').insert(payee).select().single();
   if (error) throw error;
   return data;
 }
 
-export async function updatePayee(id: number, payee: { name: string; type: string; document?: string; cargo?: string; endereco?: string }) {
-  const { error } = await supabase
-    .from('payees')
-    .update(payee)
-    .eq('id', id);
+export async function updatePayee(
+  id: number,
+  payee: { name: string; type: string; document?: string; cargo?: string; endereco?: string },
+) {
+  const { error } = await supabase.from('payees').update(payee).eq('id', id);
   if (error) throw error;
 }
 
 export async function deletePayee(id: number) {
-  const { error } = await supabase
-    .from('payees')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('payees').delete().eq('id', id);
   if (error) throw error;
 }
 
 // ==================== PROJECTS ====================
 
 export async function getProjects() {
-  const { data, error } = await supabase
-    .from('projects')
-    .select('*')
-    .order('name');
+  const { data, error } = await supabase.from('projects').select('*').order('name');
   if (error) throw error;
   return data;
 }
 
 export async function createProject(project: { name: string; description?: string }) {
-  const { data, error } = await supabase
-    .from('projects')
-    .insert(project)
-    .select()
-    .single();
+  const { data, error } = await supabase.from('projects').insert(project).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function updateProject(id: number, project: { name: string; description?: string }) {
-  const { error } = await supabase
-    .from('projects')
-    .update(project)
-    .eq('id', id);
+  const { error } = await supabase.from('projects').update(project).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteProject(id: number) {
-  const { error } = await supabase
-    .from('projects')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) throw error;
 }
 
 // ==================== CLASSIFICATIONS ====================
 
 export async function getClassifications() {
-  const { data, error } = await supabase
-    .from('classifications')
-    .select('*')
-    .order('name');
+  const { data, error } = await supabase.from('classifications').select('*').order('name');
   if (error) throw error;
   return data;
 }
@@ -95,19 +75,16 @@ export async function createClassification(classification: { name: string; descr
   return data;
 }
 
-export async function updateClassification(id: number, classification: { name: string; description?: string }) {
-  const { error } = await supabase
-    .from('classifications')
-    .update(classification)
-    .eq('id', id);
+export async function updateClassification(
+  id: number,
+  classification: { name: string; description?: string },
+) {
+  const { error } = await supabase.from('classifications').update(classification).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteClassification(id: number) {
-  const { error } = await supabase
-    .from('classifications')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('classifications').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -116,12 +93,14 @@ export async function deleteClassification(id: number) {
 export async function getTransactions(period?: string) {
   let query = supabase
     .from('transactions')
-    .select(`
+    .select(
+      `
       *,
       payees ( name, document, cargo, endereco ),
       projects ( name ),
       classifications ( name )
-    `)
+    `,
+    )
     .order('date', { ascending: true })
     .order('id', { ascending: true });
 
@@ -133,7 +112,9 @@ export async function getTransactions(period?: string) {
       // Mês: YYYY-MM
       const [year, month] = period.split('-').map(Number);
       const lastDay = new Date(year, month, 0).getDate();
-      query = query.gte('date', `${period}-01`).lte('date', `${period}-${String(lastDay).padStart(2, '0')}`);
+      query = query
+        .gte('date', `${period}-01`)
+        .lte('date', `${period}-${String(lastDay).padStart(2, '0')}`);
     }
   }
 
@@ -141,7 +122,7 @@ export async function getTransactions(period?: string) {
   if (error) throw error;
 
   // Formatar para manter compatibilidade com o frontend atual
-  return (data || []).map((t: any) => ({
+  return (data || []).map((t: { [key: string]: unknown; payees?: { name?: string; document?: string; cargo?: string; endereco?: string }; projects?: { name?: string }; classifications?: { name?: string } }) => ({
     ...t,
     payee_name: t.payees?.name || null,
     payee_document: t.payees?.document || null,
@@ -160,35 +141,28 @@ export async function createTransaction(transaction: {
   amount: number;
   description: string;
 }) {
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert(transaction)
-    .select()
-    .single();
+  const { data, error } = await supabase.from('transactions').insert(transaction).select().single();
   if (error) throw error;
   return data;
 }
 
-export async function updateTransaction(id: number, transaction: {
-  date: string;
-  payee_id: number | null;
-  project_id: number | null;
-  classification_id: number | null;
-  amount: number;
-  description: string;
-}) {
-  const { error } = await supabase
-    .from('transactions')
-    .update(transaction)
-    .eq('id', id);
+export async function updateTransaction(
+  id: number,
+  transaction: {
+    date: string;
+    payee_id: number | null;
+    project_id: number | null;
+    classification_id: number | null;
+    amount: number;
+    description: string;
+  },
+) {
+  const { error } = await supabase.from('transactions').update(transaction).eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteTransaction(id: number) {
-  const { error } = await supabase
-    .from('transactions')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from('transactions').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -218,7 +192,10 @@ export async function getBalance(period: string) {
     .lt('date', startDate);
   if (e1) throw e1;
 
-  const initialBalance = (beforeData || []).reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+  const initialBalance = (beforeData || []).reduce(
+    (sum: number, t: { amount: number | string }) => sum + Number(t.amount),
+    0,
+  );
 
   // Transações do período
   const { data: periodData, error: e2 } = await supabase
@@ -243,7 +220,8 @@ export async function getBalance(period: string) {
         expensesByProject[t.project_id] = (expensesByProject[t.project_id] || 0) + Math.abs(amount);
       }
       if (t.classification_id) {
-        expensesByClassification[t.classification_id] = (expensesByClassification[t.classification_id] || 0) + Math.abs(amount);
+        expensesByClassification[t.classification_id] =
+          (expensesByClassification[t.classification_id] || 0) + Math.abs(amount);
       }
     }
   }

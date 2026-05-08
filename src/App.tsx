@@ -1,5 +1,17 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
-import { LayoutDashboard, ReceiptText, Users, FolderKanban, Menu, Tags, LogOut, Calculator, ScrollText } from 'lucide-react';
+import {
+  LayoutDashboard,
+  ReceiptText,
+  Users,
+  FolderKanban,
+  Menu,
+  Tags,
+  LogOut,
+  Calculator,
+  ScrollText,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -43,6 +55,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function Sidebar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [openMenus, setOpenMenus] = useState<string[]>(['CAIXA GERENCIAL']);
   const { signOut, user } = useAuth();
 
   const linksCaixa = [
@@ -61,27 +74,16 @@ function Sidebar() {
     { to: '/classifications', label: 'Classificações', icon: Tags },
   ];
 
-  const renderLinks = (links: any[]) => {
-    return links.map((link) => {
-      const Icon = link.icon;
-      const isActive = location.pathname === link.to;
-      return (
-        <Link
-          key={link.to}
-          to={link.to}
-          onClick={() => setIsOpen(false)}
-          className={cn(
-            "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors",
-            isActive 
-              ? "bg-white text-neutral-900 font-semibold shadow-sm" 
-              : "text-neutral-400 hover:bg-neutral-800 hover:text-white"
-          )}
-        >
-          <Icon className="w-5 h-5" />
-          <span className="font-medium">{link.label}</span>
-        </Link>
-      );
-    });
+  const modules = [
+    { title: 'CAIXA GERENCIAL', links: linksCaixa },
+    { title: 'CORREÇÃO MONETÁRIA', links: linksCorrecao },
+    { title: 'CADASTROS', links: linksCadastros },
+  ];
+
+  const toggleMenu = (title: string) => {
+    setOpenMenus((prev) =>
+      prev.includes(title) ? prev.filter((m) => m !== title) : [...prev, title],
+    );
   };
 
   return (
@@ -89,49 +91,88 @@ function Sidebar() {
       <div className="md:hidden p-4 bg-white border-b border-neutral-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img src="/logoAttos.jpeg" alt="Attos" className="h-7 w-auto" />
-          <span className="font-bold text-lg text-neutral-800">Sistema Attos</span>
+          <span className="font-bold text-lg text-neutral-800">Gestão Financeira</span>
         </div>
         <button onClick={() => setIsOpen(!isOpen)} className="p-2">
           <Menu className="w-6 h-6" />
         </button>
       </div>
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900 text-white transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 flex flex-col",
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      <div
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900 text-white transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 flex flex-col',
+          isOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
         {/* Logo na Sidebar */}
         <div className="p-6">
           <div className="flex items-center gap-3 mb-1">
-            <div className="bg-white rounded-lg p-1.5">
+            <div className="bg-white rounded-lg p-1.5 flex-shrink-0">
               <img src="/logoAttos.jpeg" alt="Attos" className="h-6 w-auto" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-white">Sistema Attos</h1>
-              <p className="text-neutral-500 text-xs">Gestão Financeira</p>
-            </div>
+            <p className="text-white font-medium text-sm leading-tight">Gestão Financeira</p>
           </div>
         </div>
-        
-        <nav className="mt-2 flex-1 overflow-y-auto">
-          <div className="mb-6">
-            <h2 className="px-6 mb-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Caixa Gerencial</h2>
-            <div className="px-2 space-y-1">
-              {renderLinks(linksCaixa)}
-            </div>
-          </div>
-          
-          <div className="mb-6">
-            <h2 className="px-6 mb-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Correção Monetária</h2>
-            <div className="px-2 space-y-1">
-              {renderLinks(linksCorrecao)}
-            </div>
-          </div>
 
-          <div className="mb-6">
-            <h2 className="px-6 mb-2 text-xs font-semibold text-neutral-500 uppercase tracking-wider">Cadastros</h2>
-            <div className="px-2 space-y-1">
-              {renderLinks(linksCadastros)}
-            </div>
+        <nav className="mt-2 flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="px-3 pb-6 flex flex-col gap-4">
+            {modules.map((module) => {
+              const isModuleOpen = openMenus.includes(module.title);
+              const hasActiveChild = module.links.some((link) => location.pathname === link.to);
+
+              return (
+                <div key={module.title} className="flex flex-col gap-1">
+                  <button
+                    onClick={() => toggleMenu(module.title)}
+                    className={cn(
+                      'flex items-center justify-between w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors group',
+                      hasActiveChild && !isModuleOpen
+                        ? 'text-white'
+                        : 'text-neutral-500 hover:text-neutral-300 hover:bg-white/5',
+                    )}
+                  >
+                    <span>{module.title}</span>
+                    {isModuleOpen ? (
+                      <ChevronDown className="w-4 h-4 transition-transform" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    )}
+                  </button>
+
+                  {/* Conteúdo Retrátil com CSS puro */}
+                  <div
+                    className={cn(
+                      'grid transition-all duration-200 ease-in-out',
+                      isModuleOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                    )}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="flex flex-col gap-1 pt-1 ml-3 border-l border-neutral-800 pl-3">
+                        {module.links.map((link) => {
+                          const Icon = link.icon;
+                          const isActive = location.pathname === link.to;
+                          return (
+                            <Link
+                              key={link.to}
+                              to={link.to}
+                              onClick={() => setIsOpen(false)}
+                              className={cn(
+                                'flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200',
+                                isActive
+                                  ? 'bg-neutral-800 text-white font-medium shadow-sm ring-1 ring-white/10'
+                                  : 'text-neutral-400 hover:bg-neutral-800/50 hover:text-neutral-200',
+                              )}
+                            >
+                              <Icon className={cn("w-4 h-4", isActive ? "text-blue-400" : "text-neutral-500")} />
+                              <span className="text-sm">{link.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </nav>
 
@@ -155,7 +196,7 @@ function Sidebar() {
         </div>
       </div>
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         />
@@ -192,11 +233,14 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginGuard />} />
           <Route path="/register" element={<RegisterGuard />} />
-          <Route path="/*" element={
-            <ProtectedRoute>
-              <AppLayout />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -11,7 +11,7 @@ export const calculateCorrection = (
   indexType: 'SELIC' | 'IPCA' | 'IGPM' | 'INCC',
   additionalInterestRate: number,
   startDateStr: string,
-  endDateStr: string
+  endDateStr: string,
 ) => {
   let correctedValue = originalValue;
 

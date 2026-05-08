@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \":*)",
+      "Bash(node -e \"const fs=require\\(''fs''\\); const c=fs.readFileSync\\(''src/utils/pdfGenerators.ts'',''utf8''\\); const i=c.indexOf\\(''.header img''\\); console.log\\(JSON.stringify\\(c.slice\\(i,i+60\\)\\)\\);\")",
+      "Bash(node -e \":*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=31/12/2012\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=28/02/2026\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=31/12/2022\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=31/12/2019\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=31/12/2016\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=31/12/2014\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=31/12/2021\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=31/12/2020\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2012&dataFinal=22/10/2013\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2013&dataFinal=22/10/2014\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados?formato=json&dataInicial=23/10/2025&dataFinal=28/02/2026\")",
+      "Bash(node -e \"const fs=require\\(''fs''\\); const c=fs.readFileSync\\(''vite.config.ts'',''utf8''\\); console.log\\(JSON.stringify\\(c.slice\\(200\\)\\)\\);\")"
+    ]
+  }
+}

@@ -2,9 +2,42 @@
 // Ex: 1523.45 → "um mil, quinhentos e vinte e três reais e quarenta e cinco centavos"
 
 const unidades = ['', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
-const especiais = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
-const dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
-const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+const especiais = [
+  'dez',
+  'onze',
+  'doze',
+  'treze',
+  'quatorze',
+  'quinze',
+  'dezesseis',
+  'dezessete',
+  'dezoito',
+  'dezenove',
+];
+const dezenas = [
+  '',
+  '',
+  'vinte',
+  'trinta',
+  'quarenta',
+  'cinquenta',
+  'sessenta',
+  'setenta',
+  'oitenta',
+  'noventa',
+];
+const centenas = [
+  '',
+  'cento',
+  'duzentos',
+  'trezentos',
+  'quatrocentos',
+  'quinhentos',
+  'seiscentos',
+  'setecentos',
+  'oitocentos',
+  'novecentos',
+];
 
 function grupoParaExtenso(n: number): string {
   if (n === 0) return '';
@@ -37,10 +70,10 @@ export function valorPorExtenso(valor: number): string {
   const centavos = Math.round((abs - inteiro) * 100);
 
   const grupos: { valor: number; singular: string; plural: string }[] = [
-    { valor: 0, singular: '', plural: '' },                    // unidades
-    { valor: 0, singular: 'mil', plural: 'mil' },              // milhares
-    { valor: 0, singular: 'milhão', plural: 'milhões' },       // milhões
-    { valor: 0, singular: 'bilhão', plural: 'bilhões' },       // bilhões
+    { valor: 0, singular: '', plural: '' }, // unidades
+    { valor: 0, singular: 'mil', plural: 'mil' }, // milhares
+    { valor: 0, singular: 'milhão', plural: 'milhões' }, // milhões
+    { valor: 0, singular: 'bilhão', plural: 'bilhões' }, // bilhões
   ];
 
   let temp = inteiro;

@@ -4,7 +4,7 @@ import { SavedTable, CalculationResult } from '../types';
 export async function saveCalculationTable(
   userId: string,
   name: string,
-  data: any[]
+  data: Record<string, unknown>[],
 ): Promise<{ table: SavedTable; result: CalculationResult } | null> {
   const { data: tableData, error: tableError } = await supabase
     .from('monetary_saved_tables')
@@ -31,11 +31,10 @@ export async function saveCalculationTable(
   return { table: tableData, result: resultData };
 }
 
-export async function getSavedTables(userId: string): Promise<SavedTable[]> {
+export async function getSavedTables(_userId?: string): Promise<SavedTable[]> {
   const { data, error } = await supabase
     .from('monetary_saved_tables')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -57,4 +56,44 @@ export async function getTableResults(tableId: string): Promise<CalculationResul
     return null;
   }
   return data as CalculationResult;
+}
+
+export async function updateTableResults(
+  tableId: string,
+  data: Record<string, unknown>[],
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('monetary_calculation_results')
+    .update({ data })
+    .eq('table_id', tableId);
+
+  if (error) {
+    console.error('update results error', error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteCalculationTable(tableId: string): Promise<boolean> {
+  const { error: resultsError } = await supabase
+    .from('monetary_calculation_results')
+    .delete()
+    .eq('table_id', tableId);
+
+  if (resultsError) {
+    console.error('delete results error', resultsError);
+    return false;
+  }
+
+  const { error: tableError } = await supabase
+    .from('monetary_saved_tables')
+    .delete()
+    .eq('id', tableId);
+
+  if (tableError) {
+    console.error('delete table error', tableError);
+    return false;
+  }
+
+  return true;
 }

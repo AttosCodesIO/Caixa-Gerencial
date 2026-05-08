@@ -6,13 +6,13 @@ import { Link, useNavigate } from 'react-router-dom';
 export default function Register() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
-  
+
   const [name, setName] = useState('');
   const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -34,7 +34,7 @@ export default function Register() {
         navigate('/login');
       }, 3000);
     }
-    
+
     setLoading(false);
   };
 
@@ -77,7 +77,9 @@ export default function Register() {
 
               {/* Campo Nome */}
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1">Nome Completo</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-1">
+                  Nome Completo
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <User className="w-5 h-5 text-neutral-400" />
@@ -172,7 +174,10 @@ export default function Register() {
             </form>
 
             <div className="mt-6 text-center">
-              <Link to="/login" className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Voltar para o Login
               </Link>
