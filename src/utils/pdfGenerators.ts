@@ -89,6 +89,7 @@ export function gerarReciboSalario(
         <div class="extenso">(${valorPorExtenso(valorAbs)})</div>
       </div>
       <div class="field"><strong>Referente ao mês/ano:</strong> ${refMesNome} / ${refAno}</div>
+      <div class="field"><strong>Histórico:</strong> ${t.description || 'Não informado'}</div>
     </div>
     <div class="texto-legal">
       Recebi da empresa/empregador acima identificado a importância líquida discriminada neste recibo, referente ao pagamento do meu salário do período mencionado, para o qual dou plena e geral quitação.
