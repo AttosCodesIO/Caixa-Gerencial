@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { DateRange } from '../types';
 
 // ==================== PAYEES ====================
 
@@ -90,7 +91,7 @@ export async function deleteClassification(id: number) {
 
 // ==================== TRANSACTIONS ====================
 
-export async function getTransactions(period?: string) {
+export async function getTransactions(range?: DateRange) {
   let query = supabase
     .from('transactions')
     .select(
@@ -104,18 +105,8 @@ export async function getTransactions(period?: string) {
     .order('date', { ascending: true })
     .order('id', { ascending: true });
 
-  if (period) {
-    if (period.length === 4) {
-      // Ano: YYYY
-      query = query.gte('date', `${period}-01-01`).lte('date', `${period}-12-31`);
-    } else {
-      // Mês: YYYY-MM
-      const [year, month] = period.split('-').map(Number);
-      const lastDay = new Date(year, month, 0).getDate();
-      query = query
-        .gte('date', `${period}-01`)
-        .lte('date', `${period}-${String(lastDay).padStart(2, '0')}`);
-    }
+  if (range) {
+    query = query.gte('date', range.dataInicio).lte('date', range.dataFim);
   }
 
   const { data, error } = await query;
@@ -168,22 +159,8 @@ export async function deleteTransaction(id: number) {
 
 // ==================== BALANCE (calculado no frontend) ====================
 
-export async function getBalance(period: string) {
-  const isYear = period.length === 4;
-
-  // Buscar TODAS as transações até o final do período para calcular saldos
-  let endDate: string;
-  let startDate: string;
-
-  if (isYear) {
-    startDate = `${period}-01-01`;
-    endDate = `${period}-12-31`;
-  } else {
-    const [year, month] = period.split('-').map(Number);
-    const lastDay = new Date(year, month, 0).getDate();
-    startDate = `${period}-01`;
-    endDate = `${period}-${String(lastDay).padStart(2, '0')}`;
-  }
+export async function getBalance(range: DateRange) {
+  const { dataInicio: startDate, dataFim: endDate } = range;
 
   // Saldo inicial: soma de tudo ANTES do período
   const { data: beforeData, error: e1 } = await supabase

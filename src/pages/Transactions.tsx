@@ -1,11 +1,8 @@
 import { useState, FormEvent } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import {
   Plus,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Edit2,
   Printer,
   Copy,
@@ -26,6 +23,8 @@ import {
   updateTransaction,
 } from '../lib/api';
 import { useTransactions } from '../hooks/useTransactions';
+import DateFilter from '../components/DateFilter';
+import { formatPeriodLabel } from '../utils/dateFilter';
 
 
 
@@ -53,11 +52,11 @@ export default function Transactions() {
     payees,
     projects,
     classifications,
-    currentDate,
-    viewMode,
-    setViewMode,
     balanceData,
     localizacao,
+    dateFilterState,
+    dateFilterError,
+    handleDateFilterChange,
     filterDay, setFilterDay,
     filterDescription, setFilterDescription,
     filterPayee, setFilterPayee,
@@ -174,10 +173,7 @@ export default function Transactions() {
 
   const executePrintBrowser = () => {
     const dataToPrint = reportScope === 'filtered' ? filteredTransactions : transactions;
-    const periodLabel =
-      viewMode === 'month'
-        ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
-        : format(currentDate, 'yyyy');
+    const periodLabel = formatPeriodLabel(dateFilterState);
 
     const html = gerarRelatorioPeriodo(
       dataToPrint,
@@ -198,10 +194,7 @@ export default function Transactions() {
 
   const executeExportPDF = () => {
     const dataToExport = reportScope === 'filtered' ? filteredTransactions : transactions;
-    const periodLabel =
-      viewMode === 'month'
-        ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
-        : format(currentDate, 'yyyy');
+    const periodLabel = formatPeriodLabel(dateFilterState);
 
     const html = gerarRelatorioPeriodo(
       dataToExport,
@@ -242,7 +235,7 @@ export default function Transactions() {
         yOffset += pageHeightPx;
       }
 
-      pdf.save(`relatorio_lancamentos_${periodLabel.replace(' ', '_')}.pdf`);
+      pdf.save(`relatorio_lancamentos_${periodLabel.replace(/[\s/]+/g, '_')}.pdf`);
       document.body.removeChild(element);
     });
 
@@ -251,10 +244,7 @@ export default function Transactions() {
 
   const executeExportExcel = () => {
     const dataToExport = reportScope === 'filtered' ? filteredTransactions : transactions;
-    const periodLabel =
-      viewMode === 'month'
-        ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
-        : format(currentDate, 'yyyy');
+    const periodLabel = formatPeriodLabel(dateFilterState);
 
     const rows = dataToExport.map((t: Transaction) => ({
       Data: format(parseISO(t.date), 'dd/MM/yyyy'),
@@ -269,7 +259,7 @@ export default function Transactions() {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Lançamentos');
-    XLSX.writeFile(wb, `relatorio_lancamentos_${periodLabel.replace(' ', '_')}.xlsx`);
+    XLSX.writeFile(wb, `relatorio_lancamentos_${periodLabel.replace(/[\s/]+/g, '_')}.xlsx`);
 
     setIsReportModalOpen(false);
   };
@@ -284,34 +274,13 @@ export default function Transactions() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-neutral-200">
-            <select
-              value={viewMode}
-              onChange={(e) => setViewMode(e.target.value as 'month' | 'year')}
-              className="bg-transparent border-none text-sm font-medium text-neutral-600 focus:ring-0 cursor-pointer outline-none"
-            >
-              <option value="month">Mensal</option>
-              <option value="year">Anual</option>
-            </select>
-            <div className="w-px h-4 bg-neutral-200 mx-1"></div>
-            <button
-              onClick={handlePrev}
-              className="p-1 hover:bg-neutral-100 rounded-lg text-neutral-600"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <span className="font-medium text-neutral-700 min-w-[120px] text-center capitalize">
-              {viewMode === 'month'
-                ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
-                : format(currentDate, 'yyyy')}
-            </span>
-            <button
-              onClick={handleNext}
-              className="p-1 hover:bg-neutral-100 rounded-lg text-neutral-600"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
+          <DateFilter
+            state={dateFilterState}
+            onChange={handleDateFilterChange}
+            error={dateFilterError}
+            onPrevMonth={handlePrev}
+            onNextMonth={handleNext}
+          />
 
           <button
             onClick={() => setIsReportModalOpen(true)}

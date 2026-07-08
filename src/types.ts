@@ -75,3 +75,34 @@ export interface Transaction {
   project_name?: string | null;
   classification_name?: string | null;
 }
+
+// ==================== FILTRO DE DATAS (Lançamentos) ====================
+
+export type DateFilterMode = 'dia' | 'periodo' | 'mes';
+
+export type DatePresetKey =
+  | 'hoje'
+  | 'ontem'
+  | 'ultimos7'
+  | 'ultimos30'
+  | 'esteMes'
+  | 'mesPassado'
+  | 'personalizado';
+
+export interface DateRange {
+  dataInicio: string; // ISO yyyy-MM-dd
+  dataFim: string; // ISO yyyy-MM-dd
+}
+
+export interface DateFilterState {
+  mode: DateFilterMode;
+  // modo 'dia'
+  selectedDay: string; // yyyy-MM-dd
+  // modo 'periodo'
+  periodStart: string; // yyyy-MM-dd
+  periodEnd: string; // yyyy-MM-dd
+  activePreset: DatePresetKey | null;
+  // modo 'mes' (legado)
+  monthDate: Date;
+  monthViewMode: 'month' | 'year';
+}

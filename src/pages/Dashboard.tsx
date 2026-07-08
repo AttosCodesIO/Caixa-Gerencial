@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, subMonths, addMonths, subYears, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { getProjects, getClassifications, getBalance } from '../lib/api';
-import { Project, Classification } from '../types';
+import { Project, Classification, DateFilterState } from '../types';
+import { resolveDateRange } from '../utils/dateFilter';
 
 export default function Dashboard() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -27,8 +28,19 @@ export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [classifications, setClassifications] = useState<Classification[]>([]);
 
-  const periodStr =
-    viewMode === 'month' ? format(currentDate, 'yyyy-MM') : format(currentDate, 'yyyy');
+  const dateRange = useMemo(
+    () =>
+      resolveDateRange({
+        mode: 'mes',
+        monthDate: currentDate,
+        monthViewMode: viewMode,
+        selectedDay: '',
+        periodStart: '',
+        periodEnd: '',
+        activePreset: null,
+      } as DateFilterState),
+    [currentDate, viewMode],
+  );
 
   useEffect(() => {
     getProjects().then(setProjects);
@@ -36,8 +48,9 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    getBalance(periodStr).then(setData);
-  }, [periodStr]);
+    getBalance(dateRange).then(setData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange.dataInicio, dateRange.dataFim]);
 
   const handlePrev = () => {
     setCurrentDate(viewMode === 'month' ? subMonths(currentDate, 1) : subYears(currentDate, 1));
