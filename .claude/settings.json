@@ -10,7 +10,25 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\andre.ATTOS\\\\Desktop\\\\.DEV\\\\caixa-gerencial\" -Recurse -Directory)",
       "Bash(Select-Object -First 20)",
       "PowerShell(head -20)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\andre.ATTOS\\\\Desktop\\\\.DEV\\\\caixa-gerencial\" -Force)",
+      "Bash(Select-Object Name, FullName)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/remind-versioning.sh",
+            "if": "Bash(git push*)",
+            "timeout": 10,
+            "statusMessage": "Verificando rotina de versionamento..."
+          }
+        ]
+      }
     ]
   }
 }

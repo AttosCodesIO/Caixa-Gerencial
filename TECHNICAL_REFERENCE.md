@@ -530,6 +530,23 @@ Metadados relevantes:
 
 **Configuração Vercel** (`vercel.json`): Regra de rewrite `/*` → `/index.html` para suporte ao React Router SPA.
 
+### Rotina de Versionamento (obrigatória a cada deploy)
+
+Desde o release `v1.0.0` (2026-07-08), toda alteração de código que resulte em deploy para produção deve seguir este processo, na ordem:
+
+1. **Revisão de código** do diff (correção + limpeza/reuso/simplificação/eficiência)
+2. **`npm audit fix`** (sem breaking changes — evitar `--force` a menos que combinado explicitamente)
+3. **Decidir o bump semver** (`major.minor.patch`) com base na natureza das mudanças:
+   - `patch`: correção de bug, sem mudança de comportamento visível
+   - `minor`: nova funcionalidade compatível com o que já existe
+   - `major`: quebra de compatibilidade
+4. **Atualizar** a seção [Histórico de Alterações](#histórico-de-alterações) deste documento e o campo `version` em `package.json`
+5. **Commit(s)** com escopo claro (preferir separar mudanças não relacionadas)
+6. **Criar tag Git anotada** `vX.Y.Z` no commit final
+7. **`git push origin main && git push origin vX.Y.Z`** — dispara CI e o deploy automático via Vercel
+
+**Automação:** existe um hook `PreToolUse` (`.claude/hooks/remind-versioning.sh`, registrado em `.claude/settings.json`) que intercepta comandos `git push` para `main`/`HEAD` e injeta um lembrete deste checklist sempre que o HEAD atual ainda não tiver uma tag exata (`git describe --tags --exact-match HEAD`). Não bloqueia o push — apenas lembra, já que nem todo push a main é necessariamente "o deploy final" de uma sessão de trabalho.
+
 ---
 
 ## 9. Testes
