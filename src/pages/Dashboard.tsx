@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { format, subMonths, addMonths, subYears, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -75,9 +75,13 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange.dataInicio, dateRange.dataFim, viewMode]);
 
+  const drillDownRequestId = useRef(0);
+
   const handleSliceClick = async (type: 'project' | 'classification', id: number, name: string) => {
+    const requestId = ++drillDownRequestId.current;
     setDrillDown({ type, name, loading: true, transactions: [] });
     const all = await getTransactions(dateRange);
+    if (requestId !== drillDownRequestId.current) return;
     const filtered = (all as Transaction[]).filter((t) =>
       type === 'project' ? t.project_id === id : t.classification_id === id,
     );

@@ -747,5 +747,31 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 ---
 
-*Última atualização: 2026-07-08*
+### 2026-07-10 — Percentual, Drill-down e Gráfico de Saldo no Dashboard
+
+**Tag:** `v1.1.0`
+**Tipo:** Funcional
+
+**Alterações:**
+
+1. **Percentual nos gráficos de pizza** ([src/pages/Dashboard.tsx](src/pages/Dashboard.tsx)):
+   - O `Tooltip` dos gráficos "Despesas por Projeto" e "Despesas por Classificação" agora exibe o percentual de cada fatia sobre o total do próprio gráfico (`R$ X (Y%)`), calculado no frontend a partir dos dados já carregados
+   - Alteração restrita ao conteúdo do tooltip (interação de hover já existente); cores, legendas e layout permanecem inalterados
+
+2. **Drill-down por clique** ([src/pages/Dashboard.tsx](src/pages/Dashboard.tsx)):
+   - Clicar em uma fatia de qualquer um dos dois donuts abre um modal com a lista de lançamentos daquele projeto/classificação no período vigente, reaproveitando `getTransactions` (filtro aplicado no client, pois `projects`/`classifications` não possuem hierarquia de subcategoria no schema atual)
+   - Modal segue o mesmo padrão visual já usado em `Transactions.tsx` (`fixed inset-0 bg-black/50` + card branco `rounded-2xl shadow-xl`)
+   - Protegido contra condição de corrida: um contador de requisição (`drillDownRequestId`) garante que, ao clicar em duas fatias em sequência rápida, apenas a resposta da última requisição atualiza o modal
+
+3. **Gráfico de linha "Saldo (Receitas - Despesas)"** ([src/pages/Dashboard.tsx](src/pages/Dashboard.tsx), [src/lib/api.ts](src/lib/api.ts)):
+   - Nova função `getBalanceSeries(range, granularity)` agrega receita − despesa por dia (modo Mensal) ou por mês (modo Anual), respeitando o filtro de período já existente no Dashboard
+   - Novo card full-width abaixo dos gráficos de pizza, com `LineChart` do Recharts, reaproveitando as classes de card e a cor `#3b82f6` já presentes na paleta do Dashboard (nenhuma cor nova introduzida)
+
+**Módulos impactados:** Dashboard
+
+**Segurança/dependências:** `npm audit fix` executado sem alterações — as 5 vulnerabilidades reportadas (`esbuild`/`vite`/`vitest` moderadas e `xlsx` alta/crítica) só têm correção disponível via `--force` (breaking change) ou não têm correção publicada; não aplicadas nesta versão para não introduzir mudança de comportamento fora do escopo.
+
+---
+
+*Última atualização: 2026-07-10*
 *Responsável pela manutenção: Equipe de Desenvolvimento — ATTOS Empreendimentos Imobiliários S.A.*
