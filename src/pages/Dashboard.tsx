@@ -8,10 +8,23 @@ import {
   TrendingDown,
   DollarSign,
   Wallet,
+  X,
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { getProjects, getClassifications, getBalance } from '../lib/api';
-import { Project, Classification, DateFilterState } from '../types';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
+import { getProjects, getClassifications, getBalance, getBalanceSeries, getTransactions } from '../lib/api';
+import { Project, Classification, DateFilterState, Transaction } from '../types';
 import { resolveDateRange } from '../utils/dateFilter';
 
 export default function Dashboard() {
@@ -27,6 +40,15 @@ export default function Dashboard() {
   } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [classifications, setClassifications] = useState<Classification[]>([]);
+  const [balanceSeries, setBalanceSeries] = useState<
+    { label: string; income: number; expense: number; saldo: number }[]
+  >([]);
+  const [drillDown, setDrillDown] = useState<{
+    type: 'project' | 'classification';
+    name: string;
+    loading: boolean;
+    transactions: Transaction[];
+  } | null>(null);
 
   const dateRange = useMemo(
     () =>
@@ -49,8 +71,18 @@ export default function Dashboard() {
 
   useEffect(() => {
     getBalance(dateRange).then(setData);
+    getBalanceSeries(dateRange, viewMode === 'month' ? 'day' : 'month').then(setBalanceSeries);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange.dataInicio, dateRange.dataFim]);
+  }, [dateRange.dataInicio, dateRange.dataFim, viewMode]);
+
+  const handleSliceClick = async (type: 'project' | 'classification', id: number, name: string) => {
+    setDrillDown({ type, name, loading: true, transactions: [] });
+    const all = await getTransactions(dateRange);
+    const filtered = (all as Transaction[]).filter((t) =>
+      type === 'project' ? t.project_id === id : t.classification_id === id,
+    );
+    setDrillDown({ type, name, loading: false, transactions: filtered });
+  };
 
   const handlePrev = () => {
     setCurrentDate(viewMode === 'month' ? subMonths(currentDate, 1) : subYears(currentDate, 1));
@@ -87,10 +119,13 @@ export default function Dashboard() {
     '#f97316',
   ];
 
-  const projectChartData = Object.entries(data.expensesByProject || {}).map(
-    ([projectId, amount], index) => {
+  const projectChartData = Object.entries(
+    data.expensesByProject || ({} as Record<string, number>),
+  ).map(
+    ([projectId, amount]: [string, number], index) => {
       const project = projects.find((p) => p.id === Number(projectId));
       return {
+        id: Number(projectId),
         name: project ? project.name : 'Sem Projeto',
         value: amount,
         color: COLORS[index % COLORS.length],
@@ -98,16 +133,24 @@ export default function Dashboard() {
     },
   );
 
-  const classificationChartData = Object.entries(data.expensesByClassification || {}).map(
-    ([classId, amount], index) => {
+  const classificationChartData = Object.entries(
+    data.expensesByClassification || ({} as Record<string, number>),
+  ).map(
+    ([classId, amount]: [string, number], index) => {
       const classification = classifications.find((c) => c.id === Number(classId));
       return {
+        id: Number(classId),
         name: classification ? classification.name : 'Sem Classificação',
         value: amount,
         color: COLORS_ALT[index % COLORS_ALT.length],
       };
     },
   );
+
+  const projectTotal = projectChartData.reduce((sum, d) => sum + d.value, 0);
+  const classificationTotal = classificationChartData.reduce((sum, d) => sum + d.value, 0);
+  const formatPercent = (value: number, total: number) =>
+    total > 0 ? `${((value / total) * 100).toFixed(1)}%` : '0%';
 
   return (
     <div className="space-y-6">
@@ -206,13 +249,21 @@ export default function Dashboard() {
                     outerRadius={100}
                     paddingAngle={5}
                     dataKey="value"
+                    onClick={(entry) => {
+                      const d = entry as unknown as { id: number; name: string };
+                      handleSliceClick('project', d.id, d.name);
+                    }}
+                    cursor="pointer"
                   >
                     {projectChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) => [
+                      `${formatCurrency(value)} (${formatPercent(value, projectTotal)})`,
+                      'Valor',
+                    ]}
                     contentStyle={{
                       borderRadius: '12px',
                       border: 'none',
@@ -244,13 +295,21 @@ export default function Dashboard() {
                     outerRadius={100}
                     paddingAngle={5}
                     dataKey="value"
+                    onClick={(entry) => {
+                      const d = entry as unknown as { id: number; name: string };
+                      handleSliceClick('classification', d.id, d.name);
+                    }}
+                    cursor="pointer"
                   >
                     {classificationChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) => [
+                      `${formatCurrency(value)} (${formatPercent(value, classificationTotal)})`,
+                      'Valor',
+                    ]}
                     contentStyle={{
                       borderRadius: '12px',
                       border: 'none',
@@ -268,6 +327,122 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200">
+        <h2 className="text-lg font-bold text-neutral-900 mb-6">Saldo (Receitas - Despesas)</h2>
+        {balanceSeries.length > 0 ? (
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={balanceSeries} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 12, fill: '#737373' }}
+                  tickFormatter={(label: string) =>
+                    viewMode === 'month'
+                      ? format(new Date(`${label}T00:00:00`), 'dd/MM')
+                      : format(new Date(`${label}-01T00:00:00`), 'MMM', { locale: ptBR })
+                  }
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#737373' }}
+                  tickFormatter={(value: number) =>
+                    new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(
+                      value,
+                    )
+                  }
+                />
+                <Tooltip
+                  formatter={(value: number) => formatCurrency(value)}
+                  labelFormatter={(label: string) =>
+                    viewMode === 'month'
+                      ? format(new Date(`${label}T00:00:00`), 'dd/MM/yyyy')
+                      : format(new Date(`${label}-01T00:00:00`), 'MMMM yyyy', { locale: ptBR })
+                  }
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: 'none',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="saldo"
+                  name="Saldo"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-[300px] flex items-center justify-center text-neutral-500">
+            Nenhum lançamento registrado neste período.
+          </div>
+        )}
+      </div>
+
+      {drillDown && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-neutral-100 flex justify-between items-center bg-neutral-50">
+              <div>
+                <h2 className="text-lg font-bold text-neutral-900">{drillDown.name}</h2>
+                <p className="text-sm text-neutral-500">
+                  {drillDown.type === 'project' ? 'Projeto' : 'Classificação'} · Lançamentos do
+                  período
+                </p>
+              </div>
+              <button
+                onClick={() => setDrillDown(null)}
+                className="text-neutral-400 hover:text-neutral-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              {drillDown.loading ? (
+                <div className="text-center text-neutral-500 py-8">Carregando...</div>
+              ) : drillDown.transactions.length === 0 ? (
+                <div className="text-center text-neutral-500 py-8">
+                  Nenhum lançamento encontrado.
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-neutral-500 border-b border-neutral-100">
+                      <th className="py-2 pr-4 font-medium">Data</th>
+                      <th className="py-2 pr-4 font-medium">Beneficiário</th>
+                      <th className="py-2 pr-4 font-medium">Descrição</th>
+                      <th className="py-2 text-right font-medium">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drillDown.transactions.map((t) => (
+                      <tr key={t.id} className="border-b border-neutral-50">
+                        <td className="py-2 pr-4 text-neutral-700">
+                          {format(new Date(`${t.date}T00:00:00`), 'dd/MM/yyyy')}
+                        </td>
+                        <td className="py-2 pr-4 text-neutral-700">{t.payee_name || '-'}</td>
+                        <td className="py-2 pr-4 text-neutral-700">{t.description}</td>
+                        <td
+                          className={`py-2 text-right font-medium ${
+                            Number(t.amount) >= 0 ? 'text-emerald-600' : 'text-red-600'
+                          }`}
+                        >
+                          {formatCurrency(Number(t.amount))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

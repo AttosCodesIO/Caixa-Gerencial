@@ -214,3 +214,39 @@ export async function getBalance(range: DateRange) {
     expensesByClassification,
   };
 }
+
+// Série temporal do saldo (receitas - despesas) agrupada por dia ou por mês,
+// usada pelo gráfico de linha do Dashboard.
+export async function getBalanceSeries(range: DateRange, granularity: 'day' | 'month') {
+  const { dataInicio: startDate, dataFim: endDate } = range;
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('date, amount')
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date', { ascending: true });
+  if (error) throw error;
+
+  const buckets: Record<string, { income: number; expense: number }> = {};
+
+  for (const t of (data || []) as { date: string; amount: number | string }[]) {
+    const key = granularity === 'day' ? t.date.slice(0, 10) : t.date.slice(0, 7);
+    if (!buckets[key]) buckets[key] = { income: 0, expense: 0 };
+    const amount = Number(t.amount);
+    if (amount > 0) {
+      buckets[key].income += amount;
+    } else {
+      buckets[key].expense += Math.abs(amount);
+    }
+  }
+
+  return Object.entries(buckets)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, { income, expense }]) => ({
+      label: key,
+      income,
+      expense,
+      saldo: income - expense,
+    }));
+}
