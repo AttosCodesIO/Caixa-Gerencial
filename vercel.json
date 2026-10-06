@@ -1,5 +1,10 @@
 {
   "name": "caixa-gerencial-prod",
+  "functions": {
+    "api/relatorios/**/*.ts": {
+      "maxDuration": 60
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -13,7 +18,7 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

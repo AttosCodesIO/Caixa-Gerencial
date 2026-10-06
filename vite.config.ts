@@ -3,9 +3,10 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vite';
+import { relatoriosApiDevPlugin } from './dev/relatoriosApiDevPlugin';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), relatoriosApiDevPlugin()],
   // @ts-expect-error - 'test' es una propriedade injetada pelo Vitest que o TS do Vite não está mapeando adequadamente
   test: {
     globals: true,

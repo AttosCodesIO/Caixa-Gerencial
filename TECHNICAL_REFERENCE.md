@@ -19,6 +19,7 @@
    - 4.6 [Cadastro de Projetos](#46-cadastro-de-projetos)
    - 4.7 [Cadastro de Classificações](#47-cadastro-de-classificações)
    - 4.8 [Autenticação e Controle de Acesso](#48-autenticação-e-controle-de-acesso)
+   - 4.9 [Relatórios (Oracle / MEGA ERP)](#49-relatórios-oracle--mega-erp)
 5. [Geração de Documentos](#5-geração-de-documentos)
 6. [Integração com APIs Externas](#6-integração-com-apis-externas)
 7. [Banco de Dados](#7-banco-de-dados)
@@ -67,6 +68,8 @@ O sistema é uma aplicação financeira interna que centraliza o controle de cai
 |---|---|---|
 | Supabase JS | 2.49.4 | Auth, banco de dados (PostgreSQL), RLS |
 | API BCB | — | Séries históricas de índices econômicos (SELIC, IPCA, IGPM, INCC) |
+| Vercel Serverless Functions | Node.js | Endpoints `api/relatorios/*` do módulo Relatórios |
+| node-oracledb | 7.0.1 | Leitura do Oracle do MEGA ERP (modo Thin, sem Instant Client) |
 
 ### Geração de Arquivos
 
@@ -107,6 +110,12 @@ O sistema é uma aplicação financeira interna que centraliza o controle de cai
 caixa-gerencial/
 ├── .github/workflows/ci.yml     # Pipeline CI/CD (build, lint, unit tests, E2E)
 ├── .claude/                     # Configurações Claude Code
+├── api/relatorios/              # Serverless Functions do módulo Relatórios (Vercel)
+│   ├── _lib/                    # Conexão Oracle, auth, tipos HTTP, queries e regras (não vira rota)
+│   ├── filiais.ts               # GET  /api/relatorios/filiais
+│   ├── dados.ts                 # POST /api/relatorios/dados
+│   └── saldo-bancario/          # GET contas / POST dados
+├── dev/relatoriosApiDevPlugin.ts # Serve api/relatorios/* dentro do `npm run dev`
 ├── e2e/                         # Testes end-to-end (Playwright)
 ├── Skills/                      # Documentação de skills Claude Code
 ├── src/
@@ -122,6 +131,7 @@ caixa-gerencial/
 │   │   ├── api.ts               # Cliente Supabase — CRUD de entidades
 │   │   ├── supabase.ts          # Inicialização do cliente Supabase
 │   │   └── valorPorExtenso.ts   # Conversão de número para texto em português
+│   ├── modules/relatorios/      # Telas dos relatórios Oracle (parâmetros, resultado, impressão)
 │   ├── pages/                   # Páginas da aplicação
 │   │   ├── Login.tsx
 │   │   ├── Register.tsx
@@ -356,6 +366,33 @@ Registro de categorias de receita/despesa para classificação de lançamentos.
 
 ---
 
+### 4.9 Relatórios (Oracle / MEGA ERP)
+
+Módulo somente leitura que consulta o Oracle do MEGA ERP (MEGA Cloud). O navegador nunca fala com o Oracle: as telas chamam Serverless Functions em `api/relatorios/*`, que exigem o mesmo token de sessão Supabase do restante do app (`Authorization: Bearer`).
+
+| Relatório | Rotas (tela) | Endpoints | Regra |
+|---|---|---|---|
+| **Financeiro por Projeto** (Relatório Executivo de Baixas) | `/relatorios` → `/relatorios/executivo` | `GET /api/relatorios/filiais`, `POST /api/relatorios/dados` | Baixas do período rateadas por projeto/classe/centro de custo; a filial escolhida é expandida para toda a árvore de filiais filhas (`PAI_AGN_IN_CODIGO`) |
+| **Saldo Bancário** (conciliação de saldos) | `/relatorios/saldo-bancario` → `/relatorios/saldo-bancario/resultado` | `GET /api/relatorios/saldo-bancario/contas`, `POST /api/relatorios/saldo-bancario/dados` | Reimplementa em SQL a procedure `ATTOS.PRC_FT_CONCILIACAOSALDOS`, chamando as mesmas funções Oracle; o grupo de filiais vem de `GLO_FILIAL_ATIVA` |
+
+**Organização do backend** ([api/relatorios/](api/relatorios/)):
+- Os handlers (`dados.ts`, `filiais.ts`, `saldo-bancario/*.ts`) só autenticam, validam a entrada e respondem
+- A regra de cada relatório fica em `_lib/relatorioExecutivo.ts` e `_lib/saldoBancario.ts`; as queries ficam em `_lib/queryRelatorio.ts` e `_lib/querySaldoBancario.ts` (strings TS, para entrarem no bundle da função)
+- Datas trafegam como texto e são convertidas no servidor com `TO_DATE`/`TO_CHAR` — binds de `Date` do JavaScript sofrem deslocamento de fuso
+- Imports relativos dentro de `api/` usam extensão `.js` (exigência do runtime ESM da Vercel, pois o `package.json` é `"type": "module"`)
+
+**Conferência com produção (2026-10-06):**
+- Financeiro por Projeto: filial 2, 28/09 a 02/10/2026 — total 6.369.569,12 e os 22 projetos idênticos ao relatório de produção
+- Saldo Bancário: filial 2, datas-base 30/09 e 06/10/2026 — 107 contas × 6 colunas idênticas ao `SELECT` da procedure de produção
+
+**Pendências conhecidas:**
+- As contas 5749 e 8329 (fundo fixo, categoria 12003) são excluídas do Saldo Bancário por código fixo; falta confirmar com o relatório oficial se a regra correta é por categoria
+- A composição das colunas exibidas no Saldo Bancário (Saldo Extrato, Saldo Real etc.) foi derivada por comparação com o relatório oficial, não está no código-fonte da procedure
+
+**Arquivos principais:** [src/modules/relatorios/](src/modules/relatorios/), [api/relatorios/](api/relatorios/), [dev/relatoriosApiDevPlugin.ts](dev/relatoriosApiDevPlugin.ts)
+
+---
+
 ## 5. Geração de Documentos
 
 Todos os documentos gerados são construídos via HTML renderizado e convertido ou via jsPDF direto.
@@ -432,6 +469,22 @@ Variáveis de ambiente necessárias:
 - `VITE_SUPABASE_ANON_KEY`
 
 O cliente Supabase usa valores placeholder quando as variáveis não estão definidas (ambiente de teste), evitando erros de inicialização que impediriam o carregamento de mocks nos testes unitários.
+
+---
+
+### Oracle (MEGA ERP)
+
+**Arquivo:** [api/relatorios/_lib/oracleClient.ts](api/relatorios/_lib/oracleClient.ts)
+
+Variáveis de ambiente (somente servidor — cadastrar na Vercel em *Project Settings > Environment Variables*; nunca com prefixo `VITE_`):
+- `ORACLE_USER` — usuário de consulta (`ATTOS2`)
+- `ORACLE_PASSWORD`
+- `ORACLE_CONNECT_STRING` — descriptor do MEGA Cloud (ver `.env.example`)
+- `ORACLE_CLIENT_LIB_DIR` — opcional e apenas local; força o modo Thick. Não definir na Vercel
+
+As queries leem o schema `ATTOS` pelo dblink `@ATTOS2`. A conexão é feita em modo Thin (verificado em 2026-10-06 com o usuário `ATTOS2`). As funções também usam `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em runtime para validar o token do usuário.
+
+**Rede:** as funções da Vercel precisam alcançar `dbconnect.megaerp.online:4221`. Se o MEGA Cloud restringir por IP, é preciso liberar a saída da Vercel (ainda não verificado a partir da Vercel).
 
 ---
 
@@ -528,7 +581,7 @@ Metadados relevantes:
 
 **Deploy:** Automático via Vercel ao passar o pipeline na branch `main`.
 
-**Configuração Vercel** (`vercel.json`): Regra de rewrite `/*` → `/index.html` para suporte ao React Router SPA.
+**Configuração Vercel** (`vercel.json`): rewrite de tudo que não começa com `api/` para `/index.html` (React Router SPA) e `maxDuration` de 60 s para as funções `api/relatorios/**` (as consultas Oracle levam de 5 a 8 s).
 
 ### Rotina de Versionamento (obrigatória a cada deploy)
 
@@ -773,5 +826,38 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 ---
 
-*Última atualização: 2026-07-10*
+### 2026-10-06 — Módulo Relatórios (Oracle / MEGA ERP)
+
+**Versão:** `1.2.0` (tag `v1.2.0` a criar no merge para `main`)
+**Tipo:** Funcional + Estrutural
+
+**Alterações:**
+
+1. **Novo módulo Relatórios** ([src/modules/relatorios/](src/modules/relatorios/), [api/relatorios/](api/relatorios/)):
+   - Relatório Financeiro por Projeto (Executivo de Baixas) e Relatório de Saldo Bancário, lendo o Oracle do MEGA ERP por Serverless Functions autenticadas — ver [seção 4.9](#49-relatórios-oracle--mega-erp)
+   - Nova seção "RELATÓRIOS" no menu lateral e quatro rotas em [src/App.tsx](src/App.tsx)
+   - Plugin de desenvolvimento ([dev/relatoriosApiDevPlugin.ts](dev/relatoriosApiDevPlugin.ts)) que serve os endpoints dentro do `npm run dev`
+
+2. **Conexão Oracle:** usuário de consulta `ATTOS2` e dblink `@ATTOS2` (o login `ATTOS` e o dblink `@ATTOS` deixaram de funcionar)
+
+3. **Refatoração para deploy na Vercel:**
+   - Queries movidas de arquivos `.sql` lidos com `fs` para módulos TS (`queryRelatorio.ts`, `querySaldoBancario.ts`), eliminando a dependência de o arquivo `.sql` ser incluído no bundle da função
+   - Imports relativos de `api/` com extensão `.js` (runtime ESM)
+   - Regra de cada relatório extraída dos handlers para `_lib/relatorioExecutivo.ts` e `_lib/saldoBancario.ts`
+   - `vercel.json`: `maxDuration` de 60 s para `api/relatorios/**` e rewrite da SPA sem capturar `/api/`
+
+4. **Desvios corrigidos:**
+   - Relatório Executivo: o período era enviado ao Oracle como `Date` do JavaScript e chegava deslocado pelo fuso (3 h a menos no ambiente local); passou a ser texto `AAAA-MM-DD` convertido com `TO_DATE` no servidor, e a data do movimento volta já formatada por `TO_CHAR`. O resultado atual não muda (as datas de documento não têm hora), mas deixava de ser confiável em outro fuso
+   - Relatório Executivo: `dataInicio`/`dataFim` agora são validadas como datas de calendário reais
+   - Saldo Bancário: desempate determinístico na escolha da estação/usuário que define o grupo de filiais (antes, dois pares com o mesmo número de filiais podiam se alternar)
+
+**Validação:** saída do código refatorado idêntica linha a linha à do código anterior nos dois relatórios; `typecheck`, `lint`, 44 testes unitários e `build` passando localmente. O deploy na Vercel ainda não foi exercitado.
+
+**Módulos impactados:** Relatórios (novo), menu lateral
+
+**Segurança/dependências:** novas dependências `oracledb` (produção) e `dotenv` (desenvolvimento). O pacote `@vercel/node` foi removido — era usado só pelos tipos, agora declarados em `api/relatorios/_lib/http.ts`. `npm audit fix` executado (sem `--force`): de 37 para 18 vulnerabilidades. As restantes são da cadeia `vitest`/`vite`/`esbuild` e `typescript-eslint` (apenas desenvolvimento; correção exige mudança de versão major) e do `xlsx` (sem correção publicada) — mesmo risco já aceito nas versões anteriores.
+
+---
+
+*Última atualização: 2026-10-06*
 *Responsável pela manutenção: Equipe de Desenvolvimento — ATTOS Empreendimentos Imobiliários S.A.*

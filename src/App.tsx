@@ -11,6 +11,8 @@ import {
   ScrollText,
   ChevronDown,
   ChevronRight,
+  FileBarChart,
+  Landmark,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { clsx } from 'clsx';
@@ -26,6 +28,10 @@ import Projects from './pages/Projects';
 import Classifications from './pages/Classifications';
 import MonetaryCorrection from './pages/MonetaryCorrection';
 import MonetaryHistory from './pages/MonetaryHistory';
+import ParametrosRelatorio from './modules/relatorios/ParametrosRelatorio';
+import RelatorioExecutivo from './modules/relatorios/RelatorioExecutivo';
+import ParametrosSaldoBancario from './modules/relatorios/saldo-bancario/ParametrosSaldoBancario';
+import RelatorioSaldoBancario from './modules/relatorios/saldo-bancario/RelatorioSaldoBancario';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -74,9 +80,15 @@ function Sidebar() {
     { to: '/classifications', label: 'Classificações', icon: Tags },
   ];
 
+  const linksRelatorios = [
+    { to: '/relatorios', label: 'Financeiro por Projeto', icon: FileBarChart },
+    { to: '/relatorios/saldo-bancario', label: 'Saldo Bancário', icon: Landmark },
+  ];
+
   const modules = [
     { title: 'CAIXA GERENCIAL', links: linksCaixa },
     { title: 'CORREÇÃO MONETÁRIA', links: linksCorrecao },
+    { title: 'RELATÓRIOS', links: linksRelatorios },
     { title: 'CADASTROS', links: linksCadastros },
   ];
 
@@ -216,6 +228,10 @@ function AppLayout() {
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/monetary-correction" element={<MonetaryCorrection />} />
             <Route path="/monetary-correction/history" element={<MonetaryHistory />} />
+            <Route path="/relatorios" element={<ParametrosRelatorio />} />
+            <Route path="/relatorios/executivo" element={<RelatorioExecutivo />} />
+            <Route path="/relatorios/saldo-bancario" element={<ParametrosSaldoBancario />} />
+            <Route path="/relatorios/saldo-bancario/resultado" element={<RelatorioSaldoBancario />} />
             <Route path="/payees" element={<Payees />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/classifications" element={<Classifications />} />

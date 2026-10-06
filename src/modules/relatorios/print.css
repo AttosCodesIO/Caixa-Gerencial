@@ -1,0 +1,317 @@
+/*
+ * CSS de impressão do Relatório Executivo. Escopado a .rel-report-page — não
+ * afeta nenhuma outra tela do sistema.
+ *
+ * Layout (ajuste solicitado): capa com logo/nome/filial/período centralizados;
+ * detalhamento agrupado por filial (título + tabela Data|Agente|Histórico|
+ * Valor, uma filial por bloco); última página com os gráficos Fluxo
+ * Financeiro + Projeto lado a lado. Margens reduzidas e fonte compacta para
+ * economia de páginas; histórico que não cabe em uma linha vira nota de
+ * rodapé numerada (tooltip não é viável no PDF impresso/gerado pelo navegador).
+ */
+
+.rel-print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 2.5cm 1.8cm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .rel-report-page,
+  .rel-report-page * {
+    visibility: visible;
+    /* Sem isso, a maioria dos navegadores omite cor de fundo ao imprimir
+       (modo de economia de tinta) — some os pontos coloridos de categoria,
+       as barras de progresso do Projeto e o preenchimento das barras do
+       gráfico. */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .rel-report-page {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+
+  .rel-print-hide {
+    display: none !important;
+  }
+
+  .rel-print-only {
+    display: block;
+  }
+
+  /* Capa isolada na primeira página, dados centralizados vertical/horizontalmente */
+  .rel-print-cover {
+    break-after: page;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .rel-print-cover .rel-cover-logo {
+    height: 58px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .rel-print-cover .rel-cover-title {
+    font-family: 'Manrope', 'Segoe UI', sans-serif;
+    font-weight: 800;
+    font-size: 22pt;
+    margin-top: 1rem;
+  }
+
+  .rel-print-cover .rel-cover-divider {
+    width: 44px;
+    height: 3px;
+    background: #4f46e5;
+    margin: 0.75rem 0;
+  }
+
+  .rel-print-cover .rel-cover-sub {
+    font-size: 12pt;
+    color: #444;
+  }
+
+  .rel-print-cover .rel-cover-footer {
+    position: absolute;
+    bottom: 1.5cm;
+    font-size: 9pt;
+    color: #666;
+  }
+
+  /* Corpo do documento: detalhamento (agrupado por filial) antes, gráficos depois */
+  .rel-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rel-detalhamento-impressao-block {
+    order: 1;
+    break-before: page;
+  }
+
+  /* Gráficos empilhados e centralizados na última página: Projeto primeiro,
+     Fluxo Financeiro abaixo (ordem via `order`, sem mudar o DOM/tela). Tudo
+     compacto de propósito — é obrigatório caber em uma única página. */
+  .rel-charts-block {
+    order: 2;
+    break-before: page;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .rel-chart-card {
+    font-size: 8pt;
+    padding: 0.3cm !important;
+    overflow: hidden;
+    width: 95%;
+    max-width: 16.5cm;
+    margin: 0 0 0.3cm !important;
+    /* Nunca deixar o card partir ao meio entre páginas — se não couber
+       inteiro, ele desce inteiro para a página seguinte (nunca corta título
+       de um lado e conteúdo do outro). */
+    break-inside: avoid;
+  }
+
+  .rel-chart-card h3 {
+    margin-bottom: 0.2cm !important;
+    font-size: 9pt;
+  }
+
+  .rel-projeto-print-card {
+    order: 1;
+  }
+
+  .rel-fluxo-print-card {
+    order: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .rel-chart-vazio {
+    font-size: 8pt;
+    color: #737373;
+    text-align: center;
+    padding: 0.5cm 0;
+  }
+
+  /* Lista de categorias bem compacta: fonte e espaçamento reduzidos para
+     caber com folga junto do gráfico na mesma página. */
+  .rel-categoria-lista {
+    /* substitui o space-y-3 (0.75rem) da tela */
+    display: flex;
+    flex-direction: column;
+    gap: 1.5pt;
+  }
+
+  .rel-categoria-lista > * + * {
+    margin-top: 0 !important;
+  }
+
+  .rel-categoria-linha {
+    font-size: 7pt;
+    line-height: 1.3;
+    break-inside: avoid;
+  }
+
+  .rel-categoria-dot {
+    width: 5pt !important;
+    height: 5pt !important;
+  }
+
+  .rel-categoria-barra {
+    height: 4pt !important;
+  }
+
+  /* Nomes de categoria completos (sem truncar) — agora há página inteira de
+     largura disponível, então basta liberar o truncamento em tela para a
+     impressão; se ainda assim não couber, quebra em 2ª linha. */
+  .rel-categoria-nome {
+    width: auto !important;
+    max-width: 45% !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word;
+    flex: 0 1 auto;
+  }
+
+  .rel-categoria-valor,
+  .rel-categoria-pct {
+    width: auto !important;
+  }
+
+  /* Detalhamento por filial — sem quebra de página forçada entre filiais
+     (economia de páginas): elas fluem continuamente, só a linha/título não
+     podem ser cortados ao meio. */
+  .rel-filial-grupo {
+    margin-bottom: 0.5cm;
+  }
+
+  .rel-filial-heading-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5cm;
+    margin: 0 0 0.4cm;
+    break-after: avoid-page;
+  }
+
+  .rel-filial-heading {
+    font-family: 'Manrope', 'Segoe UI', sans-serif;
+    font-weight: 800;
+    font-size: 12pt;
+    margin: 0;
+  }
+
+  .rel-filial-heading-valor {
+    font-family: 'Manrope', 'Segoe UI', sans-serif;
+    font-weight: 800;
+    font-size: 12pt;
+    white-space: nowrap;
+  }
+
+  .rel-tabela-filial {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 7pt;
+  }
+
+  .rel-tabela-filial thead th {
+    text-align: left;
+    font-size: 6.5pt;
+    font-weight: 600;
+    border-bottom: 0.5pt solid #999;
+    padding: 2pt 4pt;
+  }
+
+  .rel-tabela-filial td {
+    padding: 1.5pt 4pt;
+    font-weight: 400;
+    vertical-align: top;
+  }
+
+  /* Data: sempre curta, uma linha. */
+  .rel-tabela-filial .rel-col-data {
+    white-space: nowrap;
+  }
+
+  /* Agente: nunca corta — quebra em várias linhas usando o espaço da própria
+     coluna (alargada) em vez de reticências. */
+  .rel-tabela-filial .rel-col-agente {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Histórico: truncamento é feito em texto (ver HISTORICO_MAX_CHARS), então
+     já chega pronto para caber em uma linha; overflow:hidden aqui é só uma
+     rede de segurança para o caso raro da estimativa de caracteres falhar. */
+  .rel-tabela-filial .rel-col-historico {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Valor: nunca corta nem quebra — exibido por completo sempre. */
+  .rel-tabela-filial .rel-col-valor,
+  .rel-tabela-filial .rel-col-valor-head {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .rel-linha-tabela {
+    break-inside: avoid;
+  }
+
+  .rel-notas-rodape {
+    margin: 0.2cm 0 0.5cm;
+    padding-left: 1.2em;
+    font-size: 6pt;
+    color: #555;
+  }
+
+  .rel-notas-rodape li {
+    break-inside: avoid;
+  }
+
+  /* Tabela plana do Relatório de Saldo Bancário (sem agrupamento por
+     filial) — mesma linguagem visual de .rel-tabela-filial. */
+  .rel-tabela-saldo {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 7pt;
+  }
+
+  .rel-tabela-saldo thead th {
+    text-align: left;
+    font-size: 6.5pt;
+    font-weight: 600;
+    border-bottom: 0.5pt solid #999;
+    padding: 2pt 4pt;
+  }
+
+  .rel-tabela-saldo td {
+    padding: 1.5pt 4pt;
+    font-weight: 400;
+    vertical-align: top;
+  }
+}
