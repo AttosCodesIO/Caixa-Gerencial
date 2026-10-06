@@ -382,7 +382,7 @@ Módulo somente leitura que consulta o Oracle do MEGA ERP (MEGA Cloud). O navega
 - Imports relativos dentro de `api/` usam extensão `.js` (exigência do runtime ESM da Vercel, pois o `package.json` é `"type": "module"`)
 
 **Conferência com produção (2026-10-06):**
-- Financeiro por Projeto: filial 2, 28/09 a 02/10/2026 — total 6.369.569,12 e os 22 projetos idênticos ao relatório de produção
+- Financeiro por Projeto: filial consolidadora, 28/09 a 02/10/2026 — total e os 22 projetos idênticos ao relatório de produção
 - Saldo Bancário: filial 2, datas-base 30/09 e 06/10/2026 — 107 contas × 6 colunas idênticas ao `SELECT` da procedure de produção
 
 **Pendências conhecidas:**
@@ -477,14 +477,14 @@ O cliente Supabase usa valores placeholder quando as variáveis não estão defi
 **Arquivo:** [api/relatorios/_lib/oracleClient.ts](api/relatorios/_lib/oracleClient.ts)
 
 Variáveis de ambiente (somente servidor — cadastrar na Vercel em *Project Settings > Environment Variables*; nunca com prefixo `VITE_`):
-- `ORACLE_USER` — usuário de consulta (`ATTOS2`)
+- `ORACLE_USER` — usuário de consulta
 - `ORACLE_PASSWORD`
 - `ORACLE_CONNECT_STRING` — descriptor do MEGA Cloud (ver `.env.example`)
 - `ORACLE_CLIENT_LIB_DIR` — opcional e apenas local; força o modo Thick. Não definir na Vercel
 
-As queries leem o schema `ATTOS` pelo dblink `@ATTOS2`. A conexão é feita em modo Thin (verificado em 2026-10-06 com o usuário `ATTOS2`). As funções também usam `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em runtime para validar o token do usuário.
+As queries leem o schema `ATTOS` pelo dblink `@ATTOS2`. A conexão é feita em modo Thin (verificado em 2026-10-06). As funções também usam `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` em runtime para validar o token do usuário.
 
-**Rede:** as funções da Vercel precisam alcançar `dbconnect.megaerp.online:4221`. Se o MEGA Cloud restringir por IP, é preciso liberar a saída da Vercel (ainda não verificado a partir da Vercel).
+**Rede:** as funções da Vercel precisam alcançar o host e a porta do Oracle definidos em `ORACLE_CONNECT_STRING`. Se o MEGA Cloud restringir por IP, é preciso liberar a saída da Vercel (ainda não verificado a partir da Vercel).
 
 ---
 
@@ -838,7 +838,7 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
    - Nova seção "RELATÓRIOS" no menu lateral e quatro rotas em [src/App.tsx](src/App.tsx)
    - Plugin de desenvolvimento ([dev/relatoriosApiDevPlugin.ts](dev/relatoriosApiDevPlugin.ts)) que serve os endpoints dentro do `npm run dev`
 
-2. **Conexão Oracle:** usuário de consulta `ATTOS2` e dblink `@ATTOS2` (o login `ATTOS` e o dblink `@ATTOS` deixaram de funcionar)
+2. **Conexão Oracle:** novo usuário de consulta e novo dblink (o login e o dblink anteriores deixaram de funcionar)
 
 3. **Refatoração para deploy na Vercel:**
    - Queries movidas de arquivos `.sql` lidos com `fs` para módulos TS (`queryRelatorio.ts`, `querySaldoBancario.ts`), eliminando a dependência de o arquivo `.sql` ser incluído no bundle da função
