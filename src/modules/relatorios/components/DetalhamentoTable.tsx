@@ -19,17 +19,63 @@ const COLUNAS: { key: SortKey | 'historico'; label: string; ordenavel: boolean; 
   { key: 'valor', label: 'Valor', ordenavel: true, align: 'right' },
 ];
 
+const FILTRO_INPUT =
+  'form-control text-xs font-normal border border-neutral-300 rounded px-2 py-1 outline-none focus:border-neutral-400';
+
 // Tabela de Detalhamento (spec 3.8/3.9/3.10/3.11) — somente tela: ordenação
 // por Data/Agente/Valor (Histórico não é ordenável), paginação de 10, e lista
 // de cards abaixo de 640px com os mesmos 4 campos da tabela. A impressão usa
 // DetalhamentoPorFilialImpressao (agrupado por filial), não este componente.
+// Os filtros de coluna seguem o mesmo padrão (visual e regras) da tela de
+// Lançamentos (useTransactions) e atuam só sobre esta tabela.
 export default function DetalhamentoTable({ linhas }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('dataIso');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [page, setPage] = useState(1);
 
+  const [filterDay, setFilterDay] = useState('');
+  const [filterAgente, setFilterAgente] = useState('');
+  const [filterHistorico, setFilterHistorico] = useState('');
+  const [filterAmount, setFilterAmount] = useState('');
+
+  const linhasFiltradas = useMemo(
+    () =>
+      linhas.filter((l) => {
+        let match = true;
+        if (filterDay && filterDay !== l.dataIso.split('-')[2]) match = false;
+        if (filterAgente && !l.agente.toLowerCase().includes(filterAgente.toLowerCase()))
+          match = false;
+        if (filterHistorico && !l.historico.toLowerCase().includes(filterHistorico.toLowerCase()))
+          match = false;
+        if (filterAmount) {
+          const amountStr = Math.abs(l.valor).toString();
+          const formattedAmount = brl(Math.abs(l.valor)).replace(/[R$\s]/g, '');
+          if (!amountStr.includes(filterAmount) && !formattedAmount.includes(filterAmount))
+            match = false;
+        }
+        return match;
+      }),
+    [linhas, filterDay, filterAgente, filterHistorico, filterAmount],
+  );
+
+  const filtroAtivo = Boolean(filterDay || filterAgente || filterHistorico || filterAmount);
+  const mensagemVazio = filtroAtivo
+    ? 'Nenhum lançamento encontrado para os filtros aplicados.'
+    : 'Nenhum lançamento.';
+
+  const clearFilters = () => {
+    setFilterDay('');
+    setFilterAgente('');
+    setFilterHistorico('');
+    setFilterAmount('');
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterDay, filterAgente, filterHistorico, filterAmount]);
+
   const linhasOrdenadas = useMemo(() => {
-    const copia = [...linhas];
+    const copia = [...linhasFiltradas];
     copia.sort((a, b) => {
       let cmp = 0;
       if (sortKey === 'valor') {
@@ -40,7 +86,7 @@ export default function DetalhamentoTable({ linhas }: Props) {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return copia;
-  }, [linhas, sortKey, sortDir]);
+  }, [linhasFiltradas, sortKey, sortDir]);
 
   const totalPaginas = Math.max(1, Math.ceil(linhasOrdenadas.length / PAGE_SIZE));
   const paginaAtual = Math.min(Math.max(1, page), totalPaginas);
@@ -76,6 +122,7 @@ export default function DetalhamentoTable({ linhas }: Props) {
             <col style={{ width: '22%' }} />
             <col />
             <col style={{ width: '10%' }} />
+            <col style={{ width: '7%' }} />
           </colgroup>
           <thead>
             <tr className="bg-neutral-50 border-b border-neutral-200 text-neutral-500 text-sm">
@@ -99,13 +146,64 @@ export default function DetalhamentoTable({ linhas }: Props) {
                   </span>
                 </th>
               ))}
+              <th className="p-3 font-medium" />
+            </tr>
+            {/* Filtros Dinâmicos — mesmo padrão da tela de Lançamentos */}
+            <tr className="bg-white border-b border-neutral-200 text-sm">
+              <th className="p-2">
+                <input
+                  type="text"
+                  className={`${FILTRO_INPUT} w-16 text-center`}
+                  placeholder="Dia..."
+                  value={filterDay}
+                  onChange={(e) => setFilterDay(e.target.value)}
+                />
+              </th>
+              <th className="p-2">
+                <input
+                  type="text"
+                  className={`${FILTRO_INPUT} w-full`}
+                  placeholder="Filtrar agente..."
+                  value={filterAgente}
+                  onChange={(e) => setFilterAgente(e.target.value)}
+                />
+              </th>
+              <th className="p-2">
+                <input
+                  type="text"
+                  className={`${FILTRO_INPUT} w-full`}
+                  placeholder="Filtrar histórico..."
+                  value={filterHistorico}
+                  onChange={(e) => setFilterHistorico(e.target.value)}
+                />
+              </th>
+              <th className="p-2">
+                <div className="flex justify-end">
+                  <input
+                    type="text"
+                    className={`${FILTRO_INPUT} w-20 text-right`}
+                    placeholder="Valor..."
+                    value={filterAmount}
+                    onChange={(e) => setFilterAmount(e.target.value)}
+                  />
+                </div>
+              </th>
+              <th className="p-2 text-right">
+                <button
+                  onClick={clearFilters}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium underline px-2 py-1"
+                  title="Limpar Filtros"
+                >
+                  Limpar
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100">
             {linhasPagina.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-neutral-500">
-                  Nenhum lançamento.
+                <td colSpan={5} className="p-8 text-center text-neutral-500">
+                  {mensagemVazio}
                 </td>
               </tr>
             ) : (
@@ -117,6 +215,7 @@ export default function DetalhamentoTable({ linhas }: Props) {
                   <td className="p-3 text-right font-bold text-neutral-900 whitespace-nowrap">
                     {brl(l.valor)}
                   </td>
+                  <td className="p-3" />
                 </tr>
               ))
             )}
@@ -127,7 +226,7 @@ export default function DetalhamentoTable({ linhas }: Props) {
       {/* Lista de cards — < 640px */}
       <div className="sm:hidden divide-y divide-neutral-100 px-4">
         {linhasPagina.length === 0 ? (
-          <p className="p-8 text-center text-neutral-500">Nenhum lançamento.</p>
+          <p className="p-8 text-center text-neutral-500">{mensagemVazio}</p>
         ) : (
           linhasPagina.map((l, i) => (
             <div key={`${l.dataIso}-${i}`} className="py-3 space-y-1">
