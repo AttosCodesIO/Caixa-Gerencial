@@ -1,4 +1,4 @@
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useRef, useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronRight, FileBarChart, Loader2 } from 'lucide-react';
 import { Filial, ParametrosBusca, RelatorioExecutivoPayload, SESSION_STORAGE_KEY } from './types';
@@ -9,6 +9,28 @@ const RANGE_ABERTO_FIM = '99999999999';
 
 const CAMPO_CLASSES =
   'w-full border border-neutral-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-neutral-400 focus:border-neutral-400 outline-none';
+
+type CampoTexto = Exclude<keyof ParametrosBusca, 'filiais'>;
+
+// Até este número de filiais, o cabeçalho do relatório mostra os nomes; acima
+// disso mostra só a quantidade, para não estourar o título e a capa.
+const MAX_FILIAIS_NO_ROTULO = 3;
+
+function rotuloFiliais(selecionadas: Filial[]): string {
+  if (selecionadas.length === 0) return '—';
+  if (selecionadas.length > MAX_FILIAIS_NO_ROTULO) {
+    return `${selecionadas.length} filiais selecionadas`;
+  }
+  return selecionadas.map((f) => toTitleCase(f.nome)).join(' · ');
+}
+
+// Texto do campo fechado: o nome quando há uma só filial marcada, a
+// quantidade quando há várias.
+function resumoSelecao(selecionadas: Filial[]): string {
+  if (selecionadas.length === 0) return 'Selecione as filiais';
+  if (selecionadas.length === 1) return toTitleCase(selecionadas[0].nome);
+  return `${selecionadas.length} filiais selecionadas`;
+}
 
 function toTitleCase(text: string): string {
   return text
@@ -25,9 +47,11 @@ export default function ParametrosRelatorio() {
   const [gerando, setGerando] = useState(false);
   const [erroGerar, setErroGerar] = useState<string | null>(null);
   const [avancadoAberto, setAvancadoAberto] = useState(false);
+  const [filiaisAberto, setFiliaisAberto] = useState(false);
+  const filiaisRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<ParametrosBusca>({
-    filial: '',
+    filiais: [],
     dataInicio: '',
     dataFim: '',
     projetoInicio: RANGE_ABERTO_INICIO,
@@ -45,25 +69,58 @@ export default function ParametrosRelatorio() {
       .then((lista) => {
         setFiliais(lista);
         if (lista.length > 0) {
-          setForm((prev) => ({ ...prev, filial: prev.filial || lista[0].codigo }));
+          setForm((prev) => ({
+            ...prev,
+            filiais: prev.filiais.length > 0 ? prev.filiais : [lista[0].codigo],
+          }));
         }
       })
       .catch(() => setErroFiliais('Não foi possível carregar as filiais do Oracle.'))
       .finally(() => setLoadingFiliais(false));
   }, []);
 
-  const handleChange = (campo: keyof ParametrosBusca, valor: string) => {
+  useEffect(() => {
+    if (!filiaisAberto) return;
+    const aoClicarFora = (e: MouseEvent) => {
+      if (!filiaisRef.current?.contains(e.target as Node)) setFiliaisAberto(false);
+    };
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setFiliaisAberto(false);
+    };
+    document.addEventListener('mousedown', aoClicarFora);
+    document.addEventListener('keydown', aoTeclar);
+    return () => {
+      document.removeEventListener('mousedown', aoClicarFora);
+      document.removeEventListener('keydown', aoTeclar);
+    };
+  }, [filiaisAberto]);
+
+  const handleChange = (campo: CampoTexto, valor: string) => {
     setForm((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  const toggleFilial = (codigo: string) => {
+    setForm((prev) => ({
+      ...prev,
+      filiais: prev.filiais.includes(codigo)
+        ? prev.filiais.filter((c) => c !== codigo)
+        : [...prev.filiais, codigo],
+    }));
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErroGerar(null);
+    if (form.filiais.length === 0) {
+      setErroGerar('Selecione ao menos uma filial.');
+      return;
+    }
     setGerando(true);
     try {
       const resultado = await gerarRelatorio(form);
-      const filialSelecionada = filiais.find((f) => f.codigo === form.filial);
-      const empresa = filialSelecionada ? toTitleCase(filialSelecionada.nome) : '—';
+      // Na ordem da lista (código da filial), não na ordem dos cliques.
+      const selecionadas = filiais.filter((f) => form.filiais.includes(f.codigo));
+      const empresa = rotuloFiliais(selecionadas);
 
       const payload: RelatorioExecutivoPayload = {
         linhas: resultado.linhas,
@@ -93,30 +150,51 @@ export default function ParametrosRelatorio() {
         className="bg-white p-6 rounded-2xl shadow-sm border border-neutral-200 space-y-6"
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Filial</label>
-            <select
-              required
+          <div ref={filiaisRef} className="relative">
+            <label id="filiais-label" className="block text-sm font-medium text-neutral-700 mb-1">
+              Filiais
+            </label>
+            <button
+              type="button"
+              aria-labelledby="filiais-label"
+              aria-haspopup="true"
+              aria-expanded={filiaisAberto}
               disabled={loadingFiliais || filiais.length === 0}
-              value={form.filial}
-              onChange={(e) => handleChange('filial', e.target.value)}
-              className={CAMPO_CLASSES}
+              onClick={() => setFiliaisAberto((v) => !v)}
+              className={`${CAMPO_CLASSES} flex items-center justify-between gap-2 text-left bg-white disabled:opacity-50`}
             >
-              {loadingFiliais && <option value="">Carregando...</option>}
-              {!loadingFiliais && filiais.length === 0 && <option value="">Nenhuma filial</option>}
-              {filiais.map((f) => (
-                <option key={f.codigo} value={f.codigo}>
-                  {toTitleCase(f.nome)}
-                </option>
-              ))}
-            </select>
+              <span className={`truncate ${form.filiais.length === 0 ? 'text-neutral-400' : ''}`}>
+                {loadingFiliais
+                  ? 'Carregando...'
+                  : filiais.length === 0
+                    ? 'Nenhuma filial'
+                    : resumoSelecao(filiais.filter((f) => form.filiais.includes(f.codigo)))}
+              </span>
+              <ChevronDown className="w-4 h-4 flex-shrink-0 text-neutral-500" />
+            </button>
+            {filiaisAberto && (
+              <div className="absolute z-10 mt-1 w-full md:w-[28rem] max-w-[calc(100vw-4rem)] bg-white border border-neutral-300 rounded-xl shadow-lg px-3 py-2 max-h-64 overflow-y-auto">
+                {filiais.map((f) => (
+                  <label
+                    key={f.codigo}
+                    className="flex items-center gap-2 py-1 text-sm text-neutral-700 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.filiais.includes(f.codigo)}
+                      onChange={() => toggleFilial(f.codigo)}
+                      className="w-4 h-4 accent-neutral-900"
+                    />
+                    {toTitleCase(f.nome)}
+                  </label>
+                ))}
+              </div>
+            )}
             {erroFiliais && <p className="text-xs text-red-600 mt-1">{erroFiliais}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">
-              Data Início
-            </label>
+            <label className="block text-sm font-medium text-neutral-700 mb-1">Data Início</label>
             <input
               type="date"
               required
@@ -160,7 +238,7 @@ export default function ParametrosRelatorio() {
                   ['agenteInicio', 'agenteFim', 'Agente'],
                   ['classeInicio', 'classeFim', 'Classe Financeira'],
                   ['centroCustoInicio', 'centroCustoFim', 'Centro de Custo'],
-                ] as [keyof ParametrosBusca, keyof ParametrosBusca, string][]
+                ] as [CampoTexto, CampoTexto, string][]
               ).map(([campoInicio, campoFim, label]) => (
                 <div key={label}>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">

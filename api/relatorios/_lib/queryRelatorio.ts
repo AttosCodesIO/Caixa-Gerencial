@@ -1,6 +1,6 @@
 // Relatório Gerencial de Compromissos Baixados (Relatório Executivo de Baixas).
 // Reproduz a query do Apêndice A.2 da especificação SDD do módulo de Relatório
-// Financeiro, com três adaptações em relação ao original:
+// Financeiro, com quatro adaptações em relação ao original:
 //  - a comparação de igualdade da filial virou um IN sobre o placeholder
 //    /*FILIAIS_ALVO*/0, trocado em runtime pela lista expandida de filiais
 //    (ver relatorioExecutivo.ts);
@@ -8,6 +8,8 @@
 //    servidor, e não como bind de DATE — um JS Date é deslocado pelo fuso da
 //    sessão/processo antes de chegar ao Oracle (mesmo problema documentado em
 //    querySaldoBancario.ts);
+//  - o código do projeto (CODIGOPROJETO) também é devolvido, para o
+//    agrupamento por projeto na tela e na impressão;
 //  - a data do movimento sai como texto 'YYYY-MM-DD' (TO_CHAR), pelo mesmo
 //    motivo, no sentido inverso.
 // Fica em um módulo TS (e não em um .sql lido com fs) para entrar no bundle
@@ -16,7 +18,7 @@
 // de um nome até dentro de comentários SQL — não use esse padrão em
 // comentários dentro da string abaixo.
 export const QUERY_RELATORIO_SQL = `
-SELECT TO_CHAR(DATAMOVIMENTO, 'YYYY-MM-DD') DATAISO, FILIAL, NOMEFIL, AGNORIGINALNOME, MOVHISTORICO, VALORORIGINAL, PROJETOS
+SELECT TO_CHAR(DATAMOVIMENTO, 'YYYY-MM-DD') DATAISO, FILIAL, NOMEFIL, AGNORIGINALNOME, MOVHISTORICO, VALORORIGINAL, PROJETOS, CODIGOPROJETO
   FROM (
 
         SELECT

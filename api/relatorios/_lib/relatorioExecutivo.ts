@@ -4,7 +4,7 @@ import { titleCase, sentenceCase } from './format.js';
 import { QUERY_RELATORIO_SQL } from './queryRelatorio.js';
 
 export interface ParametrosRelatorioExecutivo {
-  filial: number;
+  filiais: number[]; // uma ou mais filiais selecionadas
   dataInicio: string; // AAAA-MM-DD
   dataFim: string; // AAAA-MM-DD, inclusiva
   projetoInicio: number;
@@ -24,6 +24,7 @@ export interface LinhaRelatorioExecutivo {
   historico: string;
   valor: number;
   categoria: string;
+  projetoCodigo: number;
   filial: number;
   nomeFilial: string;
 }
@@ -36,6 +37,7 @@ interface RelatorioRow {
   MOVHISTORICO: string | null;
   VALORORIGINAL: number;
   PROJETOS: string | null;
+  CODIGOPROJETO: number;
 }
 
 function brDate(dataIso: string): string {
@@ -46,9 +48,14 @@ function brDate(dataIso: string): string {
 export async function consultarRelatorioExecutivo(
   params: ParametrosRelatorioExecutivo,
 ): Promise<LinhaRelatorioExecutivo[]> {
-  const { filial, ...binds } = params;
+  const { filiais: filiaisSelecionadas, ...binds } = params;
   const filiais = await fetchFiliais();
-  const filiaisAlvo = resolveFiliaisAlvo(filiais, filial);
+  // Cada filial selecionada é expandida para a sua árvore (mesma regra de
+  // quando o filtro aceitava uma só); a união é deduplicada e ordenada para
+  // que a mesma seleção gere sempre o mesmo SQL.
+  const filiaisAlvo = Array.from(
+    new Set(filiaisSelecionadas.flatMap((codigo) => resolveFiliaisAlvo(filiais, codigo))),
+  ).sort((a, b) => a - b);
 
   // Substituição de string no texto SQL (não bind de lista), conforme A.2 —
   // a lista vem inteiramente da resolução hierárquica acima (códigos numéricos
@@ -67,6 +74,7 @@ export async function consultarRelatorioExecutivo(
     historico: sentenceCase((r.MOVHISTORICO ?? '').trim()),
     valor: Number(r.VALORORIGINAL),
     categoria: (r.PROJETOS ?? '').trim() || 'Sem Projeto',
+    projetoCodigo: Number(r.CODIGOPROJETO),
     filial: r.FILIAL,
     nomeFilial: (r.NOMEFIL ?? '').trim(),
   }));

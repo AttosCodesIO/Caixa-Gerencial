@@ -11,7 +11,7 @@ import FluxoFinanceiroChart from './components/FluxoFinanceiroChart';
 import FluxoFinanceiroChartImpressao from './components/FluxoFinanceiroChartImpressao';
 import ProjetoBreakdown from './components/ProjetoBreakdown';
 import DetalhamentoTable from './components/DetalhamentoTable';
-import DetalhamentoPorFilialImpressao from './components/DetalhamentoPorFilialImpressao';
+import DetalhamentoPorProjetoImpressao from './components/DetalhamentoPorProjetoImpressao';
 
 function lerPayload(): RelatorioExecutivoPayload | null {
   try {
@@ -19,7 +19,14 @@ function lerPayload(): RelatorioExecutivoPayload | null {
     if (!bruto) return null;
     const raw = JSON.parse(bruto) as RelatorioExecutivoPayload;
     if (!raw || !Array.isArray(raw.linhas) || raw.linhas.length === 0) return null;
-    return raw;
+    // Relatório gerado antes de a API devolver projetoCodigo (aba antiga ainda
+    // aberta): o código é o prefixo numérico de "código - descrição".
+    const linhas = raw.linhas.map((l) =>
+      typeof l.projetoCodigo === 'number'
+        ? l
+        : { ...l, projetoCodigo: Number.parseInt(l.categoria, 10) || 0 },
+    );
+    return { ...raw, linhas };
   } catch {
     return null;
   }
@@ -160,7 +167,7 @@ export default function RelatorioExecutivo() {
         </div>
 
         <div className="rel-detalhamento-impressao-block rel-print-only">
-          <DetalhamentoPorFilialImpressao linhas={linhas} />
+          <DetalhamentoPorProjetoImpressao linhas={linhas} />
         </div>
       </div>
 

@@ -58,3 +58,66 @@ export function larguraBarra(valor: number, maior: number): number {
   const base = maior > 0 ? maior : 1;
   return Math.max(3, (valor / base) * 100);
 }
+
+export interface GrupoFilial {
+  filial: number;
+  nomeFilial: string;
+  total: number;
+  linhas: Linha[];
+}
+
+export interface GrupoProjeto {
+  projetoCodigo: number;
+  categoria: string;
+  total: number;
+  filiais: GrupoFilial[];
+}
+
+// Ordem fixa dos grupos do Detalhamento: Projeto (código, depois nome) e,
+// dentro dele, Filial (código). Usada também para ordenar as linhas da tabela
+// da tela, para que tela e impressão mostrem os grupos na mesma sequência.
+export function compararProjetoEFilial(a: Linha, b: Linha): number {
+  return (
+    a.projetoCodigo - b.projetoCodigo ||
+    a.categoria.localeCompare(b.categoria) ||
+    a.filial - b.filial
+  );
+}
+
+// Detalhamento agrupado por Projeto e, dentro de cada projeto, por Filial
+// (uma filial pode ter lançamentos em vários projetos, então ela se repete
+// sob cada projeto em que aparece). Dentro da filial, as linhas ficam em
+// ordem de data, preservando a ordem de chegada para datas iguais.
+export function agruparPorProjetoEFilial(linhas: Linha[]): GrupoProjeto[] {
+  const ordenadas = [...linhas].sort(
+    (a, b) => compararProjetoEFilial(a, b) || a.dataIso.localeCompare(b.dataIso),
+  );
+
+  const projetos: GrupoProjeto[] = [];
+  for (const linha of ordenadas) {
+    let projeto = projetos[projetos.length - 1];
+    if (!projeto || projeto.categoria !== linha.categoria) {
+      projeto = {
+        projetoCodigo: linha.projetoCodigo,
+        categoria: linha.categoria,
+        total: 0,
+        filiais: [],
+      };
+      projetos.push(projeto);
+    }
+    let filial = projeto.filiais[projeto.filiais.length - 1];
+    if (!filial || filial.filial !== linha.filial) {
+      filial = {
+        filial: linha.filial,
+        nomeFilial: linha.nomeFilial || '—',
+        total: 0,
+        linhas: [],
+      };
+      projeto.filiais.push(filial);
+    }
+    filial.linhas.push(linha);
+    filial.total += linha.valor;
+    projeto.total += linha.valor;
+  }
+  return projetos;
+}

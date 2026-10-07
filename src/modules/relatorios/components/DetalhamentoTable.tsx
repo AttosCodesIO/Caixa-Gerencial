@@ -1,6 +1,7 @@
-import { useMemo, useState, useEffect } from 'react';
+import { Fragment, useMemo, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { Linha } from '../types';
+import { compararProjetoEFilial } from '../derive';
 import { brl } from '../format';
 
 type SortKey = 'dataIso' | 'agente' | 'valor';
@@ -12,7 +13,12 @@ interface Props {
 
 const PAGE_SIZE = 10;
 
-const COLUNAS: { key: SortKey | 'historico'; label: string; ordenavel: boolean; align?: 'right' }[] = [
+const COLUNAS: {
+  key: SortKey | 'historico';
+  label: string;
+  ordenavel: boolean;
+  align?: 'right';
+}[] = [
   { key: 'dataIso', label: 'Data', ordenavel: true },
   { key: 'agente', label: 'Agente', ordenavel: true },
   { key: 'historico', label: 'Histórico', ordenavel: false },
@@ -22,10 +28,16 @@ const COLUNAS: { key: SortKey | 'historico'; label: string; ordenavel: boolean; 
 const FILTRO_INPUT =
   'form-control text-xs font-normal border border-neutral-300 rounded px-2 py-1 outline-none focus:border-neutral-400';
 
-// Tabela de Detalhamento (spec 3.8/3.9/3.10/3.11) — somente tela: ordenação
-// por Data/Agente/Valor (Histórico não é ordenável), paginação de 10, e lista
-// de cards abaixo de 640px com os mesmos 4 campos da tabela. A impressão usa
-// DetalhamentoPorFilialImpressao (agrupado por filial), não este componente.
+const chaveFilial = (l: Linha) => `${l.categoria}|${l.filial}`;
+
+// Tabela de Detalhamento (spec 3.8/3.9/3.10/3.11) — somente tela: registros
+// agrupados por Projeto e, dentro dele, por Filial (mesma ordem da impressão,
+// ver compararProjetoEFilial); a ordenação por Data/Agente/Valor (Histórico
+// não é ordenável) vale dentro de cada grupo. Paginação de 10 registros — os
+// títulos de grupo não contam e se repetem no topo da página quando o grupo
+// continua. Abaixo de 640px, lista de cards com os mesmos 4 campos e os mesmos
+// títulos de grupo. A impressão usa DetalhamentoPorProjetoImpressao, não este
+// componente.
 // Os filtros de coluna seguem o mesmo padrão (visual e regras) da tela de
 // Lançamentos (useTransactions) e atuam só sobre esta tabela.
 export default function DetalhamentoTable({ linhas }: Props) {
@@ -74,9 +86,23 @@ export default function DetalhamentoTable({ linhas }: Props) {
     setPage(1);
   }, [filterDay, filterAgente, filterHistorico, filterAmount]);
 
+  // Totais exibidos nos títulos de grupo: somam todos os registros do grupo
+  // que passam pelos filtros, não só os da página atual.
+  const { totalPorProjeto, totalPorFilial } = useMemo(() => {
+    const totalPorProjeto = new Map<string, number>();
+    const totalPorFilial = new Map<string, number>();
+    for (const l of linhasFiltradas) {
+      totalPorProjeto.set(l.categoria, (totalPorProjeto.get(l.categoria) ?? 0) + l.valor);
+      totalPorFilial.set(chaveFilial(l), (totalPorFilial.get(chaveFilial(l)) ?? 0) + l.valor);
+    }
+    return { totalPorProjeto, totalPorFilial };
+  }, [linhasFiltradas]);
+
   const linhasOrdenadas = useMemo(() => {
     const copia = [...linhasFiltradas];
     copia.sort((a, b) => {
+      const grupo = compararProjetoEFilial(a, b);
+      if (grupo !== 0) return grupo;
       let cmp = 0;
       if (sortKey === 'valor') {
         cmp = a.valor - b.valor;
@@ -96,7 +122,19 @@ export default function DetalhamentoTable({ linhas }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalPaginas]);
 
-  const linhasPagina = linhasOrdenadas.slice((paginaAtual - 1) * PAGE_SIZE, paginaAtual * PAGE_SIZE);
+  const linhasPagina = linhasOrdenadas.slice(
+    (paginaAtual - 1) * PAGE_SIZE,
+    paginaAtual * PAGE_SIZE,
+  );
+
+  // Um registro abre título de projeto/filial quando é o primeiro da página
+  // ou quando o grupo muda em relação ao registro anterior.
+  const abreGrupo = (i: number) => {
+    const atual = linhasPagina[i];
+    const anterior = linhasPagina[i - 1];
+    const projeto = !anterior || anterior.categoria !== atual.categoria;
+    return { projeto, filial: projeto || anterior.filial !== atual.filial };
+  };
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -207,17 +245,44 @@ export default function DetalhamentoTable({ linhas }: Props) {
                 </td>
               </tr>
             ) : (
-              linhasPagina.map((l, i) => (
-                <tr key={`${l.dataIso}-${i}`} className="hover:bg-neutral-50 transition-colors">
-                  <td className="p-3 text-neutral-600 whitespace-nowrap">{l.data}</td>
-                  <td className="p-3 text-neutral-700 font-semibold">{l.agente}</td>
-                  <td className="p-3 text-neutral-600">{l.historico}</td>
-                  <td className="p-3 text-right font-bold text-neutral-900 whitespace-nowrap">
-                    {brl(l.valor)}
-                  </td>
-                  <td className="p-3" />
-                </tr>
-              ))
+              linhasPagina.map((l, i) => {
+                const abre = abreGrupo(i);
+                return (
+                  <Fragment key={`${l.dataIso}-${i}`}>
+                    {abre.projeto && (
+                      <tr data-grupo="projeto" className="bg-neutral-100">
+                        <td colSpan={3} className="p-3 font-bold text-neutral-900">
+                          {l.categoria}
+                        </td>
+                        <td className="p-3 text-right font-bold text-neutral-900 whitespace-nowrap">
+                          {brl(totalPorProjeto.get(l.categoria) ?? 0)}
+                        </td>
+                        <td className="p-3" />
+                      </tr>
+                    )}
+                    {abre.filial && (
+                      <tr data-grupo="filial" className="bg-neutral-50">
+                        <td colSpan={3} className="p-3 pl-6 text-sm font-semibold text-neutral-700">
+                          {l.nomeFilial || '—'}
+                        </td>
+                        <td className="p-3 text-right text-sm font-semibold text-neutral-700 whitespace-nowrap">
+                          {brl(totalPorFilial.get(chaveFilial(l)) ?? 0)}
+                        </td>
+                        <td className="p-3" />
+                      </tr>
+                    )}
+                    <tr className="hover:bg-neutral-50 transition-colors">
+                      <td className="p-3 text-neutral-600 whitespace-nowrap">{l.data}</td>
+                      <td className="p-3 text-neutral-700 font-semibold">{l.agente}</td>
+                      <td className="p-3 text-neutral-600">{l.historico}</td>
+                      <td className="p-3 text-right font-bold text-neutral-900 whitespace-nowrap">
+                        {brl(l.valor)}
+                      </td>
+                      <td className="p-3" />
+                    </tr>
+                  </Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -228,16 +293,37 @@ export default function DetalhamentoTable({ linhas }: Props) {
         {linhasPagina.length === 0 ? (
           <p className="p-8 text-center text-neutral-500">{mensagemVazio}</p>
         ) : (
-          linhasPagina.map((l, i) => (
-            <div key={`${l.dataIso}-${i}`} className="py-3 space-y-1">
-              <div className="flex justify-between items-baseline">
-                <span className="font-semibold text-neutral-800">{l.agente}</span>
-                <span className="font-bold text-neutral-900">{brl(l.valor)}</span>
-              </div>
-              <p className="text-sm text-neutral-600">{l.historico}</p>
-              <p className="text-xs text-neutral-400">{l.data}</p>
-            </div>
-          ))
+          linhasPagina.map((l, i) => {
+            const abre = abreGrupo(i);
+            return (
+              <Fragment key={`${l.dataIso}-${i}`}>
+                {abre.projeto && (
+                  <div className="flex justify-between items-baseline gap-3 py-2 px-2 -mx-2 bg-neutral-100 font-bold text-neutral-900">
+                    <span>{l.categoria}</span>
+                    <span className="whitespace-nowrap">
+                      {brl(totalPorProjeto.get(l.categoria) ?? 0)}
+                    </span>
+                  </div>
+                )}
+                {abre.filial && (
+                  <div className="flex justify-between items-baseline gap-3 py-2 px-2 -mx-2 bg-neutral-50 text-sm font-semibold text-neutral-700">
+                    <span>{l.nomeFilial || '—'}</span>
+                    <span className="whitespace-nowrap">
+                      {brl(totalPorFilial.get(chaveFilial(l)) ?? 0)}
+                    </span>
+                  </div>
+                )}
+                <div className="py-3 space-y-1">
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-semibold text-neutral-800">{l.agente}</span>
+                    <span className="font-bold text-neutral-900">{brl(l.valor)}</span>
+                  </div>
+                  <p className="text-sm text-neutral-600">{l.historico}</p>
+                  <p className="text-xs text-neutral-400">{l.data}</p>
+                </div>
+              </Fragment>
+            );
+          })
         )}
       </div>
 

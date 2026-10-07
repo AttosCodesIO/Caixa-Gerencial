@@ -372,19 +372,26 @@ Módulo somente leitura que consulta o Oracle do MEGA ERP (MEGA Cloud). O navega
 
 | Relatório | Rotas (tela) | Endpoints | Regra |
 |---|---|---|---|
-| **Financeiro por Projeto** (Relatório Executivo de Baixas) | `/relatorios` → `/relatorios/executivo` | `GET /api/relatorios/filiais`, `POST /api/relatorios/dados` | Baixas do período rateadas por projeto/classe/centro de custo; a filial escolhida é expandida para toda a árvore de filiais filhas (`PAI_AGN_IN_CODIGO`) |
+| **Financeiro por Projeto** (Relatório Executivo de Baixas) | `/relatorios` → `/relatorios/executivo` | `GET /api/relatorios/filiais`, `POST /api/relatorios/dados` | Baixas do período rateadas por projeto/classe/centro de custo; o filtro aceita uma ou mais filiais, e cada filial escolhida é expandida para toda a árvore de filiais filhas (`PAI_AGN_IN_CODIGO`); o detalhamento é agrupado por Projeto e, dentro dele, por Filial |
 | **Saldo Bancário** (conciliação de saldos) | `/relatorios/saldo-bancario` → `/relatorios/saldo-bancario/resultado` | `GET /api/relatorios/saldo-bancario/contas`, `POST /api/relatorios/saldo-bancario/dados` | Reimplementa em SQL a procedure `ATTOS.PRC_FT_CONCILIACAOSALDOS`, chamando as mesmas funções Oracle; o grupo de filiais vem de `GLO_FILIAL_ATIVA` |
 
 **Detalhamento de Registros (Financeiro por Projeto)** — tabela da tela de resultado ([DetalhamentoTable.tsx](src/modules/relatorios/components/DetalhamentoTable.tsx)):
-- Colunas Data, Agente, Histórico e Valor; ordenação por Data/Agente/Valor; paginação de 10 registros
+- Colunas Data, Agente, Histórico e Valor; paginação de 10 registros
+- Registros agrupados por **Projeto** e, dentro dele, por **Filial** *(adicionado em 2026-10-07)*: projetos em ordem de código, filiais em ordem de código; cada grupo tem uma linha de título com o total. A ordenação por Data/Agente/Valor vale dentro de cada grupo. Os títulos não contam na paginação e se repetem no topo da página quando o grupo continua
+- Os totais dos títulos de grupo somam os registros do grupo que passam pelos filtros de coluna (em todas as páginas)
 - Filtros de coluna no mesmo padrão visual e de regras da tela de Lançamentos ([seção 4.2](#42-lançamentos-transactions)) *(adicionado em 2026-10-07)*:
   - **Dia:** igualdade exata com os dois dígitos do dia (`01`, não `1`)
   - **Agente** e **Histórico:** texto parcial, case-insensitive
   - **Valor:** texto parcial sobre o número cru ou sobre o valor formatado em pt-BR (`2786.75` ou `2.786,75`)
   - **Limpar:** zera os quatro filtros
 - Os filtros combinam entre si (E lógico), são aplicados no navegador sobre as linhas já carregadas e voltam a paginação para a página 1
-- Escopo: atuam apenas nesta tabela. Os cards de totais, os gráficos e a impressão ("Exportar", que usa `DetalhamentoPorFilialImpressao`) continuam com todos os registros do relatório
-- Abaixo de 640px a tabela dá lugar à lista de cards, que não exibe a linha de filtros
+- Escopo: atuam apenas nesta tabela. Os cards de totais, os gráficos e a impressão ("Exportar", que usa `DetalhamentoPorProjetoImpressao`, com o mesmo agrupamento Projeto → Filial) continuam com todos os registros do relatório
+- Abaixo de 640px a tabela dá lugar à lista de cards, que não exibe a linha de filtros (os títulos de grupo aparecem)
+
+**Filtro de filiais (Financeiro por Projeto)** — tela de parâmetros ([ParametrosRelatorio.tsx](src/modules/relatorios/ParametrosRelatorio.tsx)) *(seleção múltipla adicionada em 2026-10-07)*:
+- Campo do tipo dropdown: fechado, mostra o nome da filial marcada ou a quantidade ("N filiais selecionadas"); ao clicar, abre a lista de caixas de seleção com todas as filiais. Fecha com clique fora ou Esc. A primeira filial vem marcada por padrão e é obrigatório manter ao menos uma
+- `POST /api/relatorios/dados` recebe `filiais` (lista de códigos) no lugar de `filial`. O servidor expande cada filial para a sua árvore, une os resultados sem repetição e ordena os códigos, de modo que a mesma seleção sempre gera a mesma consulta e nenhuma linha é duplicada quando uma filial escolhida já está contida em outra
+- Cabeçalho do relatório: com até 3 filiais mostra os nomes; acima disso mostra "N filiais selecionadas"
 
 **Organização do backend** ([api/relatorios/](api/relatorios/)):
 - Os handlers (`dados.ts`, `filiais.ts`, `saldo-bancario/*.ts`) só autenticam, validam a entrada e respondem
@@ -893,6 +900,35 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 **Módulos impactados:** Relatórios (Financeiro por Projeto — tela de resultado)
 
 **Segurança/dependências:** nenhuma dependência adicionada ou removida. `npm audit fix` executado (sem `--force`) sem alterações — permanecem as 18 vulnerabilidades já descritas na entrada de 2026-10-06.
+
+---
+
+### 2026-10-07 — Agrupamento por Projeto e Seleção Múltipla de Filiais no Relatório Financeiro por Projeto
+
+**Tag:** `v1.3.0`
+**Tipo:** Evolutivo
+
+**Alterações:**
+
+1. **Agrupamento Projeto → Filial no detalhamento:**
+   - Nova função `agruparPorProjetoEFilial` e comparador `compararProjetoEFilial` em [src/modules/relatorios/derive.ts](src/modules/relatorios/derive.ts), usados pela tela e pela impressão para garantir a mesma ordem (projeto por código, filial por código, data)
+   - Tela ([DetalhamentoTable.tsx](src/modules/relatorios/components/DetalhamentoTable.tsx)): linhas de título de Projeto e de Filial com total; ordenação do usuário aplicada dentro do grupo; filtros e paginação preservados
+   - Impressão: `DetalhamentoPorFilialImpressao` renomeado para [DetalhamentoPorProjetoImpressao.tsx](src/modules/relatorios/components/DetalhamentoPorProjetoImpressao.tsx); o título do projeto (com total) fica acima dos blocos de filial já existentes; novas classes `.rel-projeto-*` em `print.css`
+   - A API passa a devolver `projetoCodigo` em cada linha (coluna `CODIGOPROJETO`, que a query já calculava), para ordenar os projetos pelo código numérico
+
+2. **Seleção múltipla de filiais no filtro inicial:**
+   - [ParametrosRelatorio.tsx](src/modules/relatorios/ParametrosRelatorio.tsx): o `select` de filial virou um dropdown com caixas de seleção (abre ao clicar, fecha com clique fora ou Esc)
+   - [api/relatorios/dados.ts](api/relatorios/dados.ts) e [relatorioExecutivo.ts](api/relatorios/_lib/relatorioExecutivo.ts): o campo `filial` foi substituído por `filiais` (lista); a expansão por árvore é a mesma de antes, aplicada a cada filial, com união sem repetição
+
+3. **Testes unitários:** 8 casos novos — 5 em [derive.test.ts](src/modules/relatorios/derive.test.ts) (ordem, totais, determinismo) e 3 em `DetalhamentoTable.test.tsx` (títulos de grupo, totais sob filtro, repetição na página seguinte)
+
+**Mudança de contrato:** `POST /api/relatorios/dados` não aceita mais `filial`; tela e API precisam ser publicadas juntas (é o que ocorre no deploy da Vercel).
+
+**Fora do escopo (comportamento preservado):** cards de totais, gráficos e o resumo "Projeto" continuam iguais; Relatório de Saldo Bancário não foi alterado; nenhuma mudança nas regras da query Oracle.
+
+**Validação:** `typecheck`, `lint`, 61 testes unitários e `build` passando localmente. Conferido no Oracle (período 28/09 a 02/10/2026): a seleção de três filiais retorna exatamente a soma das três consultas individuais; a mesma seleção em outra ordem retorna a mesma saída; selecionar a consolidadora junto com uma filha não duplica linhas; o agrupamento fecha com o total e a quantidade de linhas do relatório. Telas conferidas em `npm run dev` com sessão e dados fictícios. `npm audit fix` executado (sem `--force`) sem alterações — permanecem as 18 vulnerabilidades já descritas na entrada de 2026-10-06.
+
+**Módulos impactados:** Relatórios (Financeiro por Projeto — parâmetros, resultado, impressão e API)
 
 ---
 

@@ -198,11 +198,38 @@
     width: auto !important;
   }
 
-  /* Detalhamento por filial — sem quebra de página forçada entre filiais
-     (economia de páginas): elas fluem continuamente, só a linha/título não
-     podem ser cortados ao meio. */
+  /* Detalhamento por projeto e, dentro dele, por filial — sem quebra de
+     página forçada entre projetos ou filiais (economia de páginas): eles
+     fluem continuamente, só a linha/título não podem ser cortados ao meio. */
+  .rel-projeto-grupo {
+    margin-bottom: 0.6cm;
+  }
+
+  .rel-projeto-heading-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5cm;
+    margin: 0 0 0.3cm;
+    padding-bottom: 2pt;
+    border-bottom: 0.75pt solid #111;
+    break-after: avoid-page;
+  }
+
+  .rel-projeto-heading,
+  .rel-projeto-heading-valor {
+    font-family: 'Manrope', 'Segoe UI', sans-serif;
+    font-weight: 800;
+    font-size: 12pt;
+    margin: 0;
+  }
+
+  .rel-projeto-heading-valor {
+    white-space: nowrap;
+  }
+
   .rel-filial-grupo {
-    margin-bottom: 0.5cm;
+    margin-bottom: 0.4cm;
   }
 
   .rel-filial-heading-row {
@@ -210,21 +237,22 @@
     align-items: baseline;
     justify-content: space-between;
     gap: 0.5cm;
-    margin: 0 0 0.4cm;
+    margin: 0 0 0.2cm;
     break-after: avoid-page;
   }
 
+  /* Título da filial um nível abaixo do título do projeto. */
   .rel-filial-heading {
     font-family: 'Manrope', 'Segoe UI', sans-serif;
-    font-weight: 800;
-    font-size: 12pt;
+    font-weight: 700;
+    font-size: 9pt;
     margin: 0;
   }
 
   .rel-filial-heading-valor {
     font-family: 'Manrope', 'Segoe UI', sans-serif;
-    font-weight: 800;
-    font-size: 12pt;
+    font-weight: 700;
+    font-size: 9pt;
     white-space: nowrap;
   }
 

@@ -9,7 +9,8 @@ const criarLinha = (overrides: Partial<Linha>): Linha => ({
   agente: 'FORNECEDOR ALFA',
   historico: 'NF 1001 - MATERIAL',
   valor: 350,
-  categoria: 'PROJETO A',
+  categoria: '10 - PROJETO A',
+  projetoCodigo: 10,
   filial: 1,
   nomeFilial: 'FILIAL EXEMPLO',
   ...overrides,
@@ -28,8 +29,19 @@ const LINHAS: Linha[] = [
 ];
 
 // O jsdom não aplica CSS, então a tabela (>= 640px) e a lista de cards
-// (< 640px) ficam ambas no DOM; as contagens olham só as linhas da tabela.
-const linhasDaTabela = (container: HTMLElement) => container.querySelectorAll('tbody tr');
+// (< 640px) ficam ambas no DOM; as contagens olham só as linhas de registro
+// da tabela (os títulos de grupo Projeto/Filial são marcados com data-grupo).
+const linhasDaTabela = (container: HTMLElement) =>
+  container.querySelectorAll('tbody tr:not([data-grupo])');
+
+const titulosDeGrupo = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('tbody tr[data-grupo]')).map(
+    (tr) =>
+      `${tr.getAttribute('data-grupo')}: ${Array.from(tr.querySelectorAll('td'))
+        .map((td) => (td.textContent ?? '').replace(/\s/g, ' '))
+        .filter(Boolean)
+        .join(' | ')}`,
+  );
 
 const digitar = (placeholder: string, valor: string) =>
   fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value: valor } });
@@ -104,6 +116,51 @@ describe('Tabela de Detalhamento (DetalhamentoTable)', () => {
       expect(screen.getByText('Página 2 de 3')).toBeInTheDocument();
       digitar('Filtrar agente...', 'alfa');
       expect(screen.getByText('Página 1 de 3')).toBeInTheDocument();
+    });
+  });
+
+  describe('Agrupamento por Projeto e Filial', () => {
+    const projetoB = { categoria: '20 - PROJETO B', projetoCodigo: 20 };
+    const filialDois = { filial: 2, nomeFilial: 'FILIAL DOIS' };
+    const AGRUPADAS: Linha[] = [
+      criarLinha({ ...projetoB, ...filialDois, valor: 100 }),
+      criarLinha({ ...filialDois, valor: 40 }),
+      criarLinha({ nomeFilial: 'FILIAL UM', valor: 10 }),
+      criarLinha({ nomeFilial: 'FILIAL UM', valor: 5 }),
+    ];
+
+    it('deve exibir o projeto acima da filial, em ordem de código, com os totais', () => {
+      const { container } = render(<DetalhamentoTable linhas={AGRUPADAS} />);
+      expect(titulosDeGrupo(container)).toEqual([
+        'projeto: 10 - PROJETO A | R$ 55,00',
+        'filial: FILIAL UM | R$ 15,00',
+        'filial: FILIAL DOIS | R$ 40,00',
+        'projeto: 20 - PROJETO B | R$ 100,00',
+        'filial: FILIAL DOIS | R$ 100,00',
+      ]);
+      expect(linhasDaTabela(container)).toHaveLength(4);
+    });
+
+    it('deve recalcular os totais dos grupos conforme os filtros', () => {
+      const { container } = render(<DetalhamentoTable linhas={AGRUPADAS} />);
+      digitar('Valor...', '40');
+      expect(titulosDeGrupo(container)).toEqual([
+        'projeto: 10 - PROJETO A | R$ 40,00',
+        'filial: FILIAL DOIS | R$ 40,00',
+      ]);
+    });
+
+    it('deve repetir os títulos do grupo no topo da página seguinte', () => {
+      const muitas = Array.from({ length: 12 }, (_, i) =>
+        criarLinha({ historico: `REGISTRO ${i + 1}`, valor: 1 }),
+      );
+      const { container } = render(<DetalhamentoTable linhas={muitas} />);
+      fireEvent.click(screen.getByLabelText('Próxima página'));
+      expect(titulosDeGrupo(container)).toEqual([
+        'projeto: 10 - PROJETO A | R$ 12,00',
+        'filial: FILIAL EXEMPLO | R$ 12,00',
+      ]);
+      expect(linhasDaTabela(container)).toHaveLength(2);
     });
   });
 });

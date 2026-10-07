@@ -10,6 +10,7 @@ export interface Linha {
   historico: string;
   valor: number;
   categoria: string;
+  projetoCodigo: number;
   filial: number;
   nomeFilial: string;
 }
@@ -37,7 +38,7 @@ export interface CategoriaAgregada {
 }
 
 export interface ParametrosBusca {
-  filial: string;
+  filiais: string[];
   dataInicio: string;
   dataFim: string;
   projetoInicio: string;

@@ -3,7 +3,6 @@ import { requireUser } from './_lib/auth.js';
 import { consultarRelatorioExecutivo } from './_lib/relatorioExecutivo.js';
 
 const REQUIRED_FIELDS = [
-  'filial',
   'dataInicio',
   'dataFim',
   'projetoInicio',
@@ -16,7 +15,7 @@ const REQUIRED_FIELDS = [
   'centroCustoFim',
 ] as const;
 
-type Body = Record<(typeof REQUIRED_FIELDS)[number], string>;
+type Body = Record<(typeof REQUIRED_FIELDS)[number], string> & { filiais: unknown };
 
 // AAAA-MM-DD de uma data de calendário real (rejeita, p.ex., 2026-02-31).
 function isDataIsoValida(valor: string): boolean {
@@ -45,8 +44,16 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     return;
   }
 
+  // Seleção múltipla de filiais: lista não vazia de códigos numéricos, sem repetição.
+  const filiais = Array.isArray(body.filiais)
+    ? Array.from(new Set(body.filiais.map((codigo) => Number(codigo))))
+    : [];
+  if (filiais.length === 0 || filiais.some((codigo) => !Number.isInteger(codigo) || codigo <= 0)) {
+    res.status(400).json({ error: 'Informe ao menos uma filial válida em filiais.' });
+    return;
+  }
+
   const numericFields = {
-    filial: Number(body.filial),
     projetoInicio: Number(body.projetoInicio),
     projetoFim: Number(body.projetoFim),
     agenteInicio: Number(body.agenteInicio),
@@ -76,7 +83,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   }
 
   try {
-    const linhas = await consultarRelatorioExecutivo({ ...numericFields, dataInicio, dataFim });
+    const linhas = await consultarRelatorioExecutivo({
+      ...numericFields,
+      filiais,
+      dataInicio,
+      dataFim,
+    });
     const total = linhas.reduce((sum, l) => sum + l.valor, 0);
 
     res.status(200).json({
