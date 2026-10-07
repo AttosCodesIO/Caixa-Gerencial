@@ -88,14 +88,16 @@ export default function DetalhamentoTable({ linhas }: Props) {
 
   // Totais exibidos nos títulos de grupo: somam todos os registros do grupo
   // que passam pelos filtros, não só os da página atual.
-  const { totalPorProjeto, totalPorFilial } = useMemo(() => {
+  const { totalPorProjeto, totalPorFilial, totalGeral } = useMemo(() => {
     const totalPorProjeto = new Map<string, number>();
     const totalPorFilial = new Map<string, number>();
+    let totalGeral = 0;
     for (const l of linhasFiltradas) {
+      totalGeral += l.valor;
       totalPorProjeto.set(l.categoria, (totalPorProjeto.get(l.categoria) ?? 0) + l.valor);
       totalPorFilial.set(chaveFilial(l), (totalPorFilial.get(chaveFilial(l)) ?? 0) + l.valor);
     }
-    return { totalPorProjeto, totalPorFilial };
+    return { totalPorProjeto, totalPorFilial, totalGeral };
   }, [linhasFiltradas]);
 
   const linhasOrdenadas = useMemo(() => {
@@ -285,6 +287,21 @@ export default function DetalhamentoTable({ linhas }: Props) {
               })
             )}
           </tbody>
+          {/* Total Geral — soma de todos os projetos (registros que passam pelos
+              filtros, em todas as páginas), sempre depois do último grupo. */}
+          {linhasPagina.length > 0 && (
+            <tfoot>
+              <tr data-grupo="total" className="bg-neutral-100 border-t-2 border-neutral-300">
+                <td colSpan={3} className="p-3 font-bold text-neutral-900">
+                  Total Geral
+                </td>
+                <td className="p-3 text-right font-bold text-neutral-900 whitespace-nowrap">
+                  {brl(totalGeral)}
+                </td>
+                <td className="p-3" />
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
@@ -324,6 +341,12 @@ export default function DetalhamentoTable({ linhas }: Props) {
               </Fragment>
             );
           })
+        )}
+        {linhasPagina.length > 0 && (
+          <div className="flex justify-between items-baseline gap-3 py-2 px-2 -mx-2 bg-neutral-100 border-t-2 border-neutral-300 font-bold text-neutral-900">
+            <span>Total Geral</span>
+            <span className="whitespace-nowrap">{brl(totalGeral)}</span>
+          </div>
         )}
       </div>
 

@@ -228,6 +228,31 @@
     white-space: nowrap;
   }
 
+  /* Total Geral — fecha o detalhamento depois do último projeto, na mesma
+     linguagem do título de projeto (traço acima em vez de abaixo). */
+  .rel-total-geral-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5cm;
+    margin: 0.2cm 0 0;
+    padding-top: 3pt;
+    border-top: 0.75pt solid #111;
+    break-inside: avoid;
+    break-before: avoid-page;
+  }
+
+  .rel-total-geral,
+  .rel-total-geral-valor {
+    font-family: 'Manrope', 'Segoe UI', sans-serif;
+    font-weight: 800;
+    font-size: 12pt;
+  }
+
+  .rel-total-geral-valor {
+    white-space: nowrap;
+  }
+
   .rel-filial-grupo {
     margin-bottom: 0.4cm;
   }

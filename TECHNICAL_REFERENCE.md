@@ -379,6 +379,7 @@ Módulo somente leitura que consulta o Oracle do MEGA ERP (MEGA Cloud). O navega
 - Colunas Data, Agente, Histórico e Valor; paginação de 10 registros
 - Registros agrupados por **Projeto** e, dentro dele, por **Filial** *(adicionado em 2026-10-07)*: projetos em ordem de código, filiais em ordem de código; cada grupo tem uma linha de título com o total. A ordenação por Data/Agente/Valor vale dentro de cada grupo. Os títulos não contam na paginação e se repetem no topo da página quando o grupo continua
 - Os totais dos títulos de grupo somam os registros do grupo que passam pelos filtros de coluna (em todas as páginas)
+- Linha **Total Geral** no rodapé da tabela, depois do último projeto/filial *(adicionada em 2026-10-07)*: soma de todos os projetos, com o mesmo critério dos títulos de grupo (registros que passam pelos filtros, em todas as páginas); aparece em todas as páginas e some quando não há registros. Na impressão, a mesma linha fecha o detalhamento com o total de todos os registros do relatório
 - Filtros de coluna no mesmo padrão visual e de regras da tela de Lançamentos ([seção 4.2](#42-lançamentos-transactions)) *(adicionado em 2026-10-07)*:
   - **Dia:** igualdade exata com os dois dígitos do dia (`01`, não `1`)
   - **Agente** e **Histórico:** texto parcial, case-insensitive
@@ -929,6 +930,27 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 **Validação:** `typecheck`, `lint`, 61 testes unitários e `build` passando localmente. Conferido no Oracle (período 28/09 a 02/10/2026): a seleção de três filiais retorna exatamente a soma das três consultas individuais; a mesma seleção em outra ordem retorna a mesma saída; selecionar a consolidadora junto com uma filha não duplica linhas; o agrupamento fecha com o total e a quantidade de linhas do relatório. Telas conferidas em `npm run dev` com sessão e dados fictícios. `npm audit fix` executado (sem `--force`) sem alterações — permanecem as 18 vulnerabilidades já descritas na entrada de 2026-10-06.
 
 **Módulos impactados:** Relatórios (Financeiro por Projeto — parâmetros, resultado, impressão e API)
+
+---
+
+### 2026-10-07 — Total Geral no Detalhamento do Relatório Financeiro por Projeto
+
+**Tag:** `v1.4.0`
+**Tipo:** Evolutivo
+
+**Alterações:**
+
+1. **Linha "Total Geral" depois do último projeto/filial:**
+   - Tela ([DetalhamentoTable.tsx](src/modules/relatorios/components/DetalhamentoTable.tsx)): rodapé da tabela (`tfoot`) e fim da lista de cards, com o mesmo estilo do título de projeto
+   - Impressão ([DetalhamentoPorProjetoImpressao.tsx](src/modules/relatorios/components/DetalhamentoPorProjetoImpressao.tsx)): linha final com as novas classes `.rel-total-geral*` em `print.css`, na mesma tipografia do título de projeto
+
+2. **Testes unitários:** 3 casos novos em `DetalhamentoTable.test.tsx` (valor do total, recálculo sob filtro e permanência entre páginas, ausência sem registros)
+
+**Fora do escopo (comportamento preservado):** nenhuma alteração na API, na query Oracle, no agrupamento ou nos cards de totais. Sem filtros de coluna, o Total Geral da tabela é igual ao card "Valor Total Baixado".
+
+**Validação:** `typecheck`, `lint` e 64 testes unitários passando localmente; tela e impressão conferidas em `npm run dev` com sessão e dados fictícios.
+
+**Módulos impactados:** Relatórios (Financeiro por Projeto — resultado e impressão)
 
 ---
 

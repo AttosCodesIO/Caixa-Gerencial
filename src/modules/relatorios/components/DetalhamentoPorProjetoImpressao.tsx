@@ -26,9 +26,11 @@ function truncarHistorico(texto: string): { exibido: string; truncado: boolean }
 // lançamentos naquele projeto ganha seu próprio título (com o total da filial
 // no projeto ao lado) + tabela (Data | Agente | Histórico | Valor), nessa
 // ordem fixa. Histórico truncado vira nota de rodapé numerada, reiniciada a
-// cada filial.
+// cada filial. Depois do último projeto vem a linha "Total Geral", com a soma
+// de todos os projetos.
 export default function DetalhamentoPorProjetoImpressao({ linhas }: Props) {
   const projetos = useMemo(() => agruparPorProjetoEFilial(linhas), [linhas]);
+  const totalGeral = useMemo(() => linhas.reduce((soma, l) => soma + l.valor, 0), [linhas]);
 
   return (
     <div className="rel-detalhamento-impressao">
@@ -95,6 +97,12 @@ export default function DetalhamentoPorProjetoImpressao({ linhas }: Props) {
           })}
         </div>
       ))}
+      {projetos.length > 0 && (
+        <div className="rel-total-geral-row">
+          <span className="rel-total-geral">Total Geral</span>
+          <span className="rel-total-geral-valor">{brl(totalGeral)}</span>
+        </div>
+      )}
     </div>
   );
 }

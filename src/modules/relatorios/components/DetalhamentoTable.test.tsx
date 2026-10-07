@@ -150,6 +150,36 @@ describe('Tabela de Detalhamento (DetalhamentoTable)', () => {
       ]);
     });
 
+    it('deve exibir o Total Geral depois do último grupo, somando todos os projetos', () => {
+      const { container } = render(<DetalhamentoTable linhas={AGRUPADAS} />);
+      const total = container.querySelector('tfoot tr[data-grupo="total"]');
+      expect(total).toHaveTextContent('Total Geral');
+      expect((total?.textContent ?? '').replace(/\s/g, ' ')).toContain('R$ 155,00');
+    });
+
+    it('deve recalcular o Total Geral conforme os filtros e mantê-lo em todas as páginas', () => {
+      const muitas = Array.from({ length: 12 }, (_, i) =>
+        criarLinha({ historico: `REGISTRO ${i + 1}`, valor: 1 }),
+      );
+      const { container } = render(<DetalhamentoTable linhas={muitas} />);
+      const texto = () =>
+        (container.querySelector('tfoot tr[data-grupo="total"]')?.textContent ?? '').replace(
+          /\s/g,
+          ' ',
+        );
+      expect(texto()).toContain('R$ 12,00');
+      fireEvent.click(screen.getByLabelText('Próxima página'));
+      expect(texto()).toContain('R$ 12,00');
+      digitar('Filtrar histórico...', 'REGISTRO 12');
+      expect(texto()).toContain('R$ 1,00');
+    });
+
+    it('não deve exibir o Total Geral quando não há registros', () => {
+      const { container } = render(<DetalhamentoTable linhas={AGRUPADAS} />);
+      digitar('Filtrar histórico...', 'inexistente');
+      expect(container.querySelector('tfoot')).toBeNull();
+    });
+
     it('deve repetir os títulos do grupo no topo da página seguinte', () => {
       const muitas = Array.from({ length: 12 }, (_, i) =>
         criarLinha({ historico: `REGISTRO ${i + 1}`, valor: 1 }),
