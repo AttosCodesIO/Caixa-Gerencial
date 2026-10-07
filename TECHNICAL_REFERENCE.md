@@ -375,6 +375,17 @@ Módulo somente leitura que consulta o Oracle do MEGA ERP (MEGA Cloud). O navega
 | **Financeiro por Projeto** (Relatório Executivo de Baixas) | `/relatorios` → `/relatorios/executivo` | `GET /api/relatorios/filiais`, `POST /api/relatorios/dados` | Baixas do período rateadas por projeto/classe/centro de custo; a filial escolhida é expandida para toda a árvore de filiais filhas (`PAI_AGN_IN_CODIGO`) |
 | **Saldo Bancário** (conciliação de saldos) | `/relatorios/saldo-bancario` → `/relatorios/saldo-bancario/resultado` | `GET /api/relatorios/saldo-bancario/contas`, `POST /api/relatorios/saldo-bancario/dados` | Reimplementa em SQL a procedure `ATTOS.PRC_FT_CONCILIACAOSALDOS`, chamando as mesmas funções Oracle; o grupo de filiais vem de `GLO_FILIAL_ATIVA` |
 
+**Detalhamento de Registros (Financeiro por Projeto)** — tabela da tela de resultado ([DetalhamentoTable.tsx](src/modules/relatorios/components/DetalhamentoTable.tsx)):
+- Colunas Data, Agente, Histórico e Valor; ordenação por Data/Agente/Valor; paginação de 10 registros
+- Filtros de coluna no mesmo padrão visual e de regras da tela de Lançamentos ([seção 4.2](#42-lançamentos-transactions)) *(adicionado em 2026-10-07)*:
+  - **Dia:** igualdade exata com os dois dígitos do dia (`01`, não `1`)
+  - **Agente** e **Histórico:** texto parcial, case-insensitive
+  - **Valor:** texto parcial sobre o número cru ou sobre o valor formatado em pt-BR (`2786.75` ou `2.786,75`)
+  - **Limpar:** zera os quatro filtros
+- Os filtros combinam entre si (E lógico), são aplicados no navegador sobre as linhas já carregadas e voltam a paginação para a página 1
+- Escopo: atuam apenas nesta tabela. Os cards de totais, os gráficos e a impressão ("Exportar", que usa `DetalhamentoPorFilialImpressao`) continuam com todos os registros do relatório
+- Abaixo de 640px a tabela dá lugar à lista de cards, que não exibe a linha de filtros
+
 **Organização do backend** ([api/relatorios/](api/relatorios/)):
 - Os handlers (`dados.ts`, `filiais.ts`, `saldo-bancario/*.ts`) só autenticam, validam a entrada e respondem
 - A regra de cada relatório fica em `_lib/relatorioExecutivo.ts` e `_lib/saldoBancario.ts`; as queries ficam em `_lib/queryRelatorio.ts` e `_lib/querySaldoBancario.ts` (strings TS, para entrarem no bundle da função)
@@ -611,6 +622,7 @@ Desde o release `v1.0.0` (2026-07-08), toda alteração de código que resulte e
 **Arquivos de teste:**
 - [src/App.test.tsx](src/App.test.tsx) — Smoke test da aplicação
 - [src/pages/Login.test.tsx](src/pages/Login.test.tsx) — Testes da página de login
+- [src/modules/relatorios/components/DetalhamentoTable.test.tsx](src/modules/relatorios/components/DetalhamentoTable.test.tsx) — Filtros de coluna do Detalhamento de Registros (Relatório Financeiro por Projeto)
 
 **Utilitários:**
 - [src/utils/testFactories.ts](src/utils/testFactories.ts) — Factories para criação de objetos de teste
@@ -859,5 +871,30 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 ---
 
-*Última atualização: 2026-10-06*
+### 2026-10-07 — Filtros de Coluna no Detalhamento do Relatório Financeiro por Projeto
+
+**Versão:** `1.2.0` (mesma release do Módulo Relatórios, ainda não publicada; tag `v1.2.0` a criar no merge para `main`)
+**Tipo:** Evolutivo
+
+**Alterações:**
+
+1. **Linha de filtros na tabela "Detalhamento de Registros"** ([src/modules/relatorios/components/DetalhamentoTable.tsx](src/modules/relatorios/components/DetalhamentoTable.tsx)):
+   - Filtros por Dia, Agente, Histórico e Valor, mais o link "Limpar", abaixo do cabeçalho da tabela — mesmas classes, placeholders e regras de comparação já usadas na tela de Lançamentos (`Transactions.tsx` / `useTransactions.ts`)
+   - Nova coluna estreita sem título no fim da tabela, só para o link "Limpar" (o relatório não tem a coluna "Ações" de Lançamentos)
+   - Ordenação e paginação passam a operar sobre o resultado filtrado; a paginação volta para a página 1 a cada mudança de filtro
+   - Mensagem de tabela vazia diferencia "sem registros" de "nenhum registro para os filtros aplicados"
+
+2. **Testes unitários** ([src/modules/relatorios/components/DetalhamentoTable.test.tsx](src/modules/relatorios/components/DetalhamentoTable.test.tsx)): 9 casos cobrindo cada filtro, a combinação entre eles, o "Limpar", a mensagem de vazio e o retorno à página 1
+
+**Fora do escopo (comportamento preservado):** cards de totais, gráficos e impressão/"Exportar" não são afetados pelos filtros; a lista de cards abaixo de 640px não exibe a linha de filtros; nenhuma alteração em `api/relatorios/*`, nas queries Oracle ou na tela de Lançamentos.
+
+**Validação:** `typecheck`, `lint`, 53 testes unitários (44 anteriores + 9 novos), `build` e o teste E2E passando localmente. Filtro conferido na tela do relatório em `npm run dev` com dados fictícios (sem consulta ao Oracle). O deploy na Vercel ainda não foi exercitado.
+
+**Módulos impactados:** Relatórios (Financeiro por Projeto — tela de resultado)
+
+**Segurança/dependências:** nenhuma dependência adicionada ou removida. `npm audit fix` executado (sem `--force`) sem alterações — permanecem as 18 vulnerabilidades já descritas na entrada de 2026-10-06.
+
+---
+
+*Última atualização: 2026-10-07*
 *Responsável pela manutenção: Equipe de Desenvolvimento — ATTOS Empreendimentos Imobiliários S.A.*
