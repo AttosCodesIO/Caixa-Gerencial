@@ -954,5 +954,26 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 ---
 
-*Última atualização: 2026-10-07*
+### 2026-10-14 — Histórico completo na linha do registro na impressão do Financeiro por Projeto
+
+**Tag:** `v1.4.1`
+**Tipo:** Correção
+
+**Problema:** na impressão/"Exportar" do Relatório Financeiro por Projeto, todo Histórico com mais de 80 caracteres era cortado com "…" na tabela e o texto completo era repetido numa lista numerada abaixo da tabela da filial. No PDF essa lista aparecia como um bloco de textos soltos (ex.: "Prestação de serviços de instalações…", "Ref.: retenção do nfs 94…"), sem vínculo visível com nenhum registro, e dava a impressão de dados vindos de fora do relatório. Os textos eram o próprio Histórico (`MOV_ST_COMPLHIST`) de registros do relatório — a query e os dados estavam corretos; o problema era só de apresentação.
+
+**Alterações:**
+
+1. **Impressão** ([DetalhamentoPorProjetoImpressao.tsx](src/modules/relatorios/components/DetalhamentoPorProjetoImpressao.tsx)): removidos o truncamento (`HISTORICO_MAX_CHARS`) e a lista de notas de rodapé; o Histórico sai inteiro na própria célula
+2. **CSS** ([print.css](src/modules/relatorios/print.css)): a coluna Histórico passa a quebrar em várias linhas (mesma regra da coluna Agente); removidas as classes `.rel-notas-rodape`
+3. **Testes de regressão** em `DetalhamentoPorProjetoImpressao.test.tsx`: o histórico longo sai inteiro na sua linha; cada bloco de filial contém só o título e a tabela (nenhuma lista, nota ou texto fora das linhas); cada histórico aparece exatamente uma vez. Os dois testes falham na versão anterior
+
+**Fora do escopo (comportamento preservado):** tela de resultado, API, query Oracle, agrupamento e totais. Registros com histórico longo agora ocupam mais de uma linha na impressão.
+
+**Validação:** `typecheck`, `lint`, 66 testes unitários, `build` e teste E2E passando localmente. Varredura no restante do módulo de relatórios (impressão do Saldo Bancário, tela de resultado, resumo por projeto) sem outro ponto que corte texto ou o imprima fora da linha do registro. `npm audit fix` executado (sem `--force`) sem alterações — permanecem as 18 vulnerabilidades já descritas na entrada de 2026-10-06.
+
+**Módulos impactados:** Relatórios (Financeiro por Projeto — impressão)
+
+---
+
+*Última atualização: 2026-10-14*
 *Responsável pela manutenção: Equipe de Desenvolvimento — ATTOS Empreendimentos Imobiliários S.A.*

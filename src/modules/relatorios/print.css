@@ -6,8 +6,8 @@
  * detalhamento agrupado por filial (título + tabela Data|Agente|Histórico|
  * Valor, uma filial por bloco); última página com os gráficos Fluxo
  * Financeiro + Projeto lado a lado. Margens reduzidas e fonte compacta para
- * economia de páginas; histórico que não cabe em uma linha vira nota de
- * rodapé numerada (tooltip não é viável no PDF impresso/gerado pelo navegador).
+ * economia de páginas; histórico que não cabe em uma linha quebra dentro da
+ * própria célula (nada do registro é impresso fora da sua linha).
  */
 
 .rel-print-only {
@@ -314,13 +314,11 @@
     word-break: break-word;
   }
 
-  /* Histórico: truncamento é feito em texto (ver HISTORICO_MAX_CHARS), então
-     já chega pronto para caber em uma linha; overflow:hidden aqui é só uma
-     rede de segurança para o caso raro da estimativa de caracteres falhar. */
+  /* Histórico: nunca corta — exibido por completo, quebrando em várias
+     linhas dentro da própria célula quando não cabe em uma. */
   .rel-tabela-filial .rel-col-historico {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
   }
 
   /* Valor: nunca corta nem quebra — exibido por completo sempre. */
@@ -331,17 +329,6 @@
   }
 
   .rel-linha-tabela {
-    break-inside: avoid;
-  }
-
-  .rel-notas-rodape {
-    margin: 0.2cm 0 0.5cm;
-    padding-left: 1.2em;
-    font-size: 6pt;
-    color: #555;
-  }
-
-  .rel-notas-rodape li {
     break-inside: avoid;
   }
 
