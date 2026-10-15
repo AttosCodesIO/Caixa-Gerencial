@@ -20,7 +20,10 @@ const HISTORICO_LONGO =
   'Prestação de serviços de instalações da infra para os ar condicionados e escadas pressurizadas 5ª medição';
 
 describe('DetalhamentoPorProjetoImpressao', () => {
-  it('imprime o histórico longo inteiro dentro da própria linha, sem cortar', () => {
+  // O corte com reticências do histórico longo é feito pelo CSS de impressão
+  // (uma linha, text-overflow: ellipsis); a célula guarda o texto inteiro e
+  // nenhum caractere é removido no código.
+  it('mantém o histórico longo inteiro na própria célula, sem cortar no texto', () => {
     const { container } = render(
       <DetalhamentoPorProjetoImpressao linhas={[criarLinha({ historico: HISTORICO_LONGO })]} />,
     );

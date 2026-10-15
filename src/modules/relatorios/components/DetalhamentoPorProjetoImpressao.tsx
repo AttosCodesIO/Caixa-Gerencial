@@ -11,11 +11,11 @@ interface Props {
 // cada projeto ganha um título com o seu total; abaixo, cada filial com
 // lançamentos naquele projeto ganha seu próprio título (com o total da filial
 // no projeto ao lado) + tabela (Data | Agente | Histórico | Valor), nessa
-// ordem fixa. O Histórico é exibido por completo dentro da própria célula,
-// quebrando em várias linhas quando não cabe em uma — nada do registro é
-// impresso fora da linha a que pertence (a antiga lista de notas de rodapé
-// com o histórico completo, abaixo da tabela, aparecia solta no PDF e foi
-// removida). Depois do último projeto vem a linha "Total Geral", com a soma
+// ordem fixa. O Histórico ocupa uma linha só: o que não cabe na coluna é
+// cortado com reticências pelo CSS (.rel-col-historico em print.css), para
+// não esticar o relatório. Nada do registro é impresso fora da linha a que
+// pertence (a antiga lista de notas de rodapé com o histórico completo,
+// abaixo da tabela, aparecia solta no PDF e foi removida). Depois do último projeto vem a linha "Total Geral", com a soma
 // de todos os projetos.
 export default function DetalhamentoPorProjetoImpressao({ linhas }: Props) {
   const projetos = useMemo(() => agruparPorProjetoEFilial(linhas), [linhas]);
@@ -37,10 +37,10 @@ export default function DetalhamentoPorProjetoImpressao({ linhas }: Props) {
               </div>
               <table className="rel-tabela-filial">
                 <colgroup>
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '28%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '27%' }} />
                   <col />
-                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '13%' }} />
                 </colgroup>
                 <thead>
                   <tr>

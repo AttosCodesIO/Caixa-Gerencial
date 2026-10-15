@@ -975,5 +975,28 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 ---
 
-*Última atualização: 2026-10-14*
+### 2026-10-15 — Margem e Colunas da Impressão dos Relatórios
+
+**Tag:** `v1.4.2`
+**Tipo:** Evolutivo
+
+**Alterações:**
+
+1. **Margem da página impressa** ([src/modules/relatorios/print.css](src/modules/relatorios/print.css)): de 2,5 cm (topo/base) × 1,8 cm (laterais) para **1 cm em todos os lados**. A regra `@page` é compartilhada, então vale para a impressão dos dois relatórios (Financeiro por Projeto e Saldo Bancário)
+
+2. **Tabela do detalhamento do Financeiro por Projeto** ([DetalhamentoPorProjetoImpressao.tsx](src/modules/relatorios/components/DetalhamentoPorProjetoImpressao.tsx), `print.css`): com a largura útil maior (19 cm), a fonte passou de 7pt para 8pt (cabeçalho de 6,5pt para 7pt), as colunas foram redistribuídas para Data 10%, Agente 27%, Histórico ~50% e Valor 13%, e uma linha fina separa os registros, já que o Agente pode ocupar mais de uma linha
+
+3. **Histórico em uma linha, com reticências** (`print.css`): o Histórico volta a ocupar uma linha só; o que não cabe na largura da coluna é cortado com "…" para não esticar o relatório (pedido do usuário em 2026-10-15). Diferente do corte anterior à v1.4.1, não há nota de rodapé com o texto completo — o corte é só visual (CSS `text-overflow: ellipsis`), e o texto inteiro continua disponível na tela do sistema
+
+**Fora do escopo (comportamento preservado):** conteúdo, agrupamento, totais e ordem do relatório; capa e página de gráficos; tela do sistema (só a impressão muda); colunas da tabela do Saldo Bancário (só a margem muda).
+
+**Validação:** PDF gerado em A4 com dados fictícios conferido página a página: margem medida de 1 cm em todos os lados das páginas de conteúdo; Agente longo quebra dentro da própria célula, Histórico longo termina em "…" na mesma linha e valores de até R$ 3.093.751,95 cabem em uma linha.
+
+**Módulos impactados:** Relatórios (impressão)
+
+**Segurança/dependências:** `npm audit fix` executado (sem `--force`) sem alterações.
+
+---
+
+*Última atualização: 2026-10-15*
 *Responsável pela manutenção: Equipe de Desenvolvimento — ATTOS Empreendimentos Imobiliários S.A.*

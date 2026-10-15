@@ -5,9 +5,10 @@
  * Layout (ajuste solicitado): capa com logo/nome/filial/período centralizados;
  * detalhamento agrupado por filial (título + tabela Data|Agente|Histórico|
  * Valor, uma filial por bloco); última página com os gráficos Fluxo
- * Financeiro + Projeto lado a lado. Margens reduzidas e fonte compacta para
- * economia de páginas; histórico que não cabe em uma linha quebra dentro da
- * própria célula (nada do registro é impresso fora da sua linha).
+ * Financeiro + Projeto lado a lado. Margem de 1 cm em todos os lados (A4) e
+ * fonte compacta para economia de páginas; histórico que não cabe em uma
+ * linha é cortado com reticências (nada do registro é impresso fora da sua
+ * linha).
  */
 
 .rel-print-only {
@@ -17,7 +18,7 @@
 @media print {
   @page {
     size: A4;
-    margin: 2.5cm 1.8cm;
+    margin: 1cm;
   }
 
   body * {
@@ -281,25 +282,32 @@
     white-space: nowrap;
   }
 
+  /* Tabela do detalhamento: com a margem de 1 cm sobram 19 cm de largura
+     útil, o que permite fonte de 8pt sem apertar as colunas (larguras em
+     DetalhamentoPorProjetoImpressao.tsx: Data 10%, Agente 27%, Valor 13% e
+     o restante para Histórico). Linhas finas separam os registros, já que
+     Agente e Histórico podem ocupar mais de uma linha. */
   .rel-tabela-filial {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 7pt;
+    font-size: 8pt;
+    line-height: 1.35;
   }
 
   .rel-tabela-filial thead th {
     text-align: left;
-    font-size: 6.5pt;
+    font-size: 7pt;
     font-weight: 600;
     border-bottom: 0.5pt solid #999;
     padding: 2pt 4pt;
   }
 
   .rel-tabela-filial td {
-    padding: 1.5pt 4pt;
+    padding: 2pt 4pt;
     font-weight: 400;
     vertical-align: top;
+    border-bottom: 0.25pt solid #e5e5e5;
   }
 
   /* Data: sempre curta, uma linha. */
@@ -314,11 +322,13 @@
     word-break: break-word;
   }
 
-  /* Histórico: nunca corta — exibido por completo, quebrando em várias
-     linhas dentro da própria célula quando não cabe em uma. */
+  /* Histórico: sempre em uma linha; o que não cabe na largura da coluna é
+     cortado com reticências (…), para não esticar o relatório. O corte é só
+     visual — o texto completo continua na célula, sem nota de rodapé. */
   .rel-tabela-filial .rel-col-historico {
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Valor: nunca corta nem quebra — exibido por completo sempre. */
