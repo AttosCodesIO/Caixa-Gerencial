@@ -1014,6 +1014,8 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 **Módulos impactados:** Relatórios (Saldo Bancário — tela e impressão)
 
+**Segurança/dependências:** `npm audit fix` executado (sem `--force`): `vite` 6.4.3 → 6.4.6 e `dompurify` 3.4.16 → 3.4.17 (só no `package-lock.json`). Restam 12 vulnerabilidades que exigem `--force`/troca de dependência; `typecheck`, `lint`, testes e `build` repetidos e passando após a atualização.
+
 ---
 
 *Última atualização: 2026-11-12*
