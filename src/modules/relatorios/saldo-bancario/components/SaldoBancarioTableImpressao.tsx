@@ -46,7 +46,12 @@ export default function SaldoBancarioTableImpressao({ linhas }: Props) {
             <td className="rel-col-valor">{brl(l.docAgendado)}</td>
             <td className="rel-col-valor">{brl(l.debitos)}</td>
             <td className="rel-col-valor">{brl(l.creditos)}</td>
-            <td className="rel-col-valor">{brl(l.saldoReal)}</td>
+            <td
+              className="rel-col-valor"
+              style={l.saldoReal < 0 ? { color: '#dc2626' } : undefined}
+            >
+              {brl(l.saldoReal)}
+            </td>
           </tr>
         ))}
       </tbody>

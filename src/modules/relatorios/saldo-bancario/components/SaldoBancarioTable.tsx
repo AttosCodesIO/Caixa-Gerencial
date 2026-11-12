@@ -110,7 +110,11 @@ export default function SaldoBancarioTable({ linhas }: Props) {
                   <td className="p-3 text-right text-neutral-700 whitespace-nowrap">{brl(l.docAgendado)}</td>
                   <td className="p-3 text-right text-neutral-700 whitespace-nowrap">{brl(l.debitos)}</td>
                   <td className="p-3 text-right text-neutral-700 whitespace-nowrap">{brl(l.creditos)}</td>
-                  <td className="p-3 text-right font-bold text-neutral-900 whitespace-nowrap">
+                  <td
+                    className={`p-3 text-right font-bold whitespace-nowrap ${
+                      l.saldoReal < 0 ? 'text-red-600' : 'text-neutral-900'
+                    }`}
+                  >
                     {brl(l.saldoReal)}
                   </td>
                 </tr>

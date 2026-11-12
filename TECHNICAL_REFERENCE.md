@@ -998,5 +998,23 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 ---
 
-*Última atualização: 2026-10-15*
+### 2026-11-12 — Saldo Real Negativo em Vermelho no Saldo Bancário
+
+**Tag:** `v1.4.3`
+**Tipo:** Evolutivo
+
+**Alterações:**
+
+1. **Tela** ([SaldoBancarioTable.tsx](src/modules/relatorios/saldo-bancario/components/SaldoBancarioTable.tsx)): na coluna **Saldo Real**, valores menores que zero são exibidos em vermelho (`text-red-600`); zero e positivos mantêm a cor anterior (`text-neutral-900`)
+2. **Impressão/"Exportar"** ([SaldoBancarioTableImpressao.tsx](src/modules/relatorios/saldo-bancario/components/SaldoBancarioTableImpressao.tsx)): a mesma regra, com a cor `#dc2626` (mesmo tom da tela). O `print.css` já força a impressão das cores (`print-color-adjust: exact`), então o vermelho sai no PDF/papel sem alteração de CSS
+
+**Fora do escopo (comportamento preservado):** demais colunas, cards de totais, ordenação, paginação, capa e layout da impressão; API e query Oracle.
+
+**Validação:** `typecheck`, `lint`, 66 testes unitários e `build` passando localmente.
+
+**Módulos impactados:** Relatórios (Saldo Bancário — tela e impressão)
+
+---
+
+*Última atualização: 2026-11-12*
 *Responsável pela manutenção: Equipe de Desenvolvimento — ATTOS Empreendimentos Imobiliários S.A.*
