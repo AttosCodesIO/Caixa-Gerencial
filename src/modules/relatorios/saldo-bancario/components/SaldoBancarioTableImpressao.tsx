@@ -6,17 +6,35 @@ interface Props {
   linhas: LinhaSaldoBancario[];
 }
 
+type ColunaValor = 'saldoExtrato' | 'docGerados' | 'docAgendado' | 'debitos' | 'creditos' | 'saldoReal';
+
+const COLUNAS_VALOR: ColunaValor[] = ['saldoExtrato', 'docGerados', 'docAgendado', 'debitos', 'creditos', 'saldoReal'];
+
+const COR_NEGATIVO = { color: '#dc2626' };
+
+// Nenhuma célula quebra linha (print.css): valores em fonte menor e
+// alinhados à direita; o Banco que não couber na coluna é cortado com "…".
+// Depois da última conta vem a linha "Total Geral", com a soma de cada
+// coluna de valor — impressa uma única vez, no fim da tabela.
 export default function SaldoBancarioTableImpressao({ linhas }: Props) {
   const linhasOrdenadas = useMemo(
     () => [...linhas].sort((a, b) => a.banco.localeCompare(b.banco, 'pt-BR')),
     [linhas],
   );
 
+  const totais = useMemo(() => {
+    const soma = Object.fromEntries(COLUNAS_VALOR.map((c) => [c, 0])) as Record<ColunaValor, number>;
+    for (const l of linhas) {
+      for (const c of COLUNAS_VALOR) soma[c] += l[c];
+    }
+    return soma;
+  }, [linhas]);
+
   return (
     <table className="rel-tabela-saldo">
       <colgroup>
-        <col style={{ width: '10%' }} />
-        <col style={{ width: '22%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '31%' }} />
         <col />
         <col />
         <col />
@@ -40,7 +58,7 @@ export default function SaldoBancarioTableImpressao({ linhas }: Props) {
         {linhasOrdenadas.map((l) => (
           <tr key={l.agente} className="rel-linha-tabela">
             <td>{l.agente}</td>
-            <td>{l.banco}</td>
+            <td className="rel-col-banco">{l.banco}</td>
             <td className="rel-col-valor">{brl(l.saldoExtrato)}</td>
             <td className="rel-col-valor">{brl(l.docGerados)}</td>
             <td className="rel-col-valor">{brl(l.docAgendado)}</td>
@@ -48,13 +66,29 @@ export default function SaldoBancarioTableImpressao({ linhas }: Props) {
             <td className="rel-col-valor">{brl(l.creditos)}</td>
             <td
               className="rel-col-valor"
-              style={l.saldoReal < 0 ? { color: '#dc2626' } : undefined}
+              style={l.saldoReal < 0 ? COR_NEGATIVO : undefined}
             >
               {brl(l.saldoReal)}
             </td>
           </tr>
         ))}
       </tbody>
+      {linhas.length > 0 && (
+        <tbody>
+          <tr className="rel-linha-tabela rel-saldo-total-geral">
+            <td colSpan={2}>Total Geral</td>
+            {COLUNAS_VALOR.map((c) => (
+              <td
+                key={c}
+                className="rel-col-valor"
+                style={c === 'saldoReal' && totais.saldoReal < 0 ? COR_NEGATIVO : undefined}
+              >
+                {brl(totais[c])}
+              </td>
+            ))}
+          </tr>
+        </tbody>
+      )}
     </table>
   );
 }

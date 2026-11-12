@@ -63,6 +63,13 @@ export default function RelatorioSaldoBancario() {
 
   return (
     <div className="rel-report-page space-y-6">
+      {/* Rodapé de impressão com a data de emissão em todas as páginas (caixa
+          de margem do @page). Fica num <style> do próprio componente para
+          valer só enquanto este relatório está aberto. */}
+      <style>{`@media print { @page { @bottom-right { content: ${JSON.stringify(
+        `Emitido em ${geradoEmLabel}`,
+      )}; font-family: 'Segoe UI', sans-serif; font-size: 7.5pt; color: #666; } } }`}</style>
+
       {/* Capa — somente impressão */}
       <div className="rel-print-only rel-print-cover">
         <img src="/logoAttos.jpeg" alt="Attos" className="rel-cover-logo" />

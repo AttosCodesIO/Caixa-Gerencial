@@ -343,25 +343,66 @@
   }
 
   /* Tabela plana do Relatório de Saldo Bancário (sem agrupamento por
-     filial) — mesma linguagem visual de .rel-tabela-filial. */
+     filial) — mesma linguagem visual de .rel-tabela-filial. Compacta para
+     economizar papel: fonte de 10px (7,5pt) e line-height 1.2 — sem ela a
+     tabela herdava os 14px de altura de linha da tela. */
   .rel-tabela-saldo {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    font-size: 7pt;
+    font-size: 10px;
+    line-height: 1.2;
   }
 
   .rel-tabela-saldo thead th {
     text-align: left;
-    font-size: 6.5pt;
+    font-size: 10px;
     font-weight: 600;
     border-bottom: 0.5pt solid #999;
-    padding: 2pt 4pt;
+    padding: 1pt 3pt;
   }
 
   .rel-tabela-saldo td {
-    padding: 1.5pt 4pt;
+    padding: 0.75pt 3pt;
     font-weight: 400;
     vertical-align: top;
+  }
+
+  /* Separador discreto entre as contas, para guiar a leitura da linha
+     (mesmo traço de .rel-tabela-filial). */
+  .rel-tabela-saldo tbody tr:not(.rel-saldo-total-geral) td {
+    border-bottom: 0.25pt solid #e5e5e5;
+  }
+
+  /* Nenhuma célula quebra linha. O Banco que não couber na coluna é cortado
+     com "…" (só visual — o nome completo continua na tela do sistema). */
+  .rel-tabela-saldo th,
+  .rel-tabela-saldo td {
+    white-space: nowrap;
+  }
+
+  .rel-tabela-saldo .rel-col-banco {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Valores: fonte menor (8,5px) e alinhados à direita, para sobrar espaço
+     entre as colunas e para o Banco. */
+  .rel-tabela-saldo .rel-col-valor,
+  .rel-tabela-saldo .rel-col-valor-head {
+    text-align: right;
+    padding-left: 1pt;
+  }
+
+  .rel-tabela-saldo .rel-col-valor {
+    font-size: 8.5px;
+  }
+
+  /* Total Geral: uma única linha no fim da tabela (fora do thead, então não
+     se repete a cada página). */
+  .rel-tabela-saldo .rel-saldo-total-geral td {
+    font-weight: 700;
+    border-top: 0.75pt solid #111;
+    padding-top: 2pt;
   }
 }

@@ -1018,5 +1018,29 @@ Sistema completo entregue no primeiro deploy. Funcionalidades incluídas na vers
 
 ---
 
+### 2026-11-12 — Impressão Compacta do Saldo Bancário, Total Geral e Data de Emissão
+
+**Tag:** `v1.5.0`
+**Tipo:** Evolutivo
+
+**Alterações** (somente na impressão/"Exportar" do Relatório de Saldo Bancário):
+
+1. **Espaçamento e fonte** ([print.css](src/modules/relatorios/print.css), regras `.rel-tabela-saldo`): a tabela herdava a altura de linha da tela (14px para texto de 9,3px). Agora usa fonte de 10px (7,5pt) com `line-height: 1.2` e espaçamento interno menor — linhas de 18,5px para ~14,5px, de ~55 para ~76 contas por página A4. A fonte 10 foi aplicada em pixels (decisão do usuário): 10pt seria maior que os 7pt anteriores e aumentaria o número de folhas (medido: 6 folhas contra 4 com 111 contas). A margem continua 1 cm em todos os lados (regra `@page` compartilhada, sem mudança)
+2. **Sem quebra de linha** (`print.css`, [SaldoBancarioTableImpressao.tsx](src/modules/relatorios/saldo-bancario/components/SaldoBancarioTableImpressao.tsx)): nenhuma célula quebra linha. Os valores usam fonte de 8,5px e ficam alinhados à direita; as colunas passaram para Agente 6%, Banco 31% e ~10,5% para cada valor. O Banco que não couber é cortado com "…" na mesma linha (só visual — o nome completo continua na tela)
+3. **Total Geral** (`SaldoBancarioTableImpressao.tsx`): linha ao fim da tabela com a soma de cada coluna de valor, em negrito e com traço acima; impressa uma única vez (fica num `tbody`, não no `thead`/`tfoot`, que se repetiriam por página). O Saldo Real total fica em vermelho quando negativo, como nas linhas. Sem contas, a linha não aparece
+4. **Separador entre linhas** (`print.css`): traço discreto de 0,25pt em `#e5e5e5` sob cada conta, o mesmo de `.rel-tabela-filial`
+5. **Data de emissão no rodapé** ([RelatorioSaldoBancario.tsx](src/modules/relatorios/saldo-bancario/RelatorioSaldoBancario.tsx)): "Emitido em dd/MM/yyyy às HH:mm" (o mesmo `geradoEm` exibido na tela) no canto inferior direito de todas as páginas, inclusive a capa, via caixa de margem `@page { @bottom-right }`. A regra fica num `<style>` do próprio componente, então só vale enquanto este relatório está aberto — a impressão do Financeiro por Projeto não é afetada. Caixas de margem são suportadas no Chrome/Edge 131+; em navegadores sem suporte o relatório imprime normalmente, sem o rodapé
+6. **Testes** em `SaldoBancarioTableImpressao.test.tsx`: o Total Geral aparece uma vez, como última linha, com a soma correta de cada coluna; o Saldo Real total negativo fica em vermelho; sem contas não há linha de total
+
+**Fora do escopo (comportamento preservado):** tela do relatório, capa, ordem das contas, API e query Oracle; impressão do Financeiro por Projeto.
+
+**Validação:** `typecheck`, `lint`, 69 testes unitários e `build` passando localmente. PDF A4 gerado com 111 contas fictícias (Chromium/Playwright): de 4 para 3 folhas (capa + 2), nenhuma linha com mais de uma linha de texto, valores de até R$ 28.452.965,60 inteiros na coluna, rodapé presente nas 3 páginas dentro da margem inferior.
+
+**Módulos impactados:** Relatórios (Saldo Bancário — impressão)
+
+**Segurança/dependências:** `npm audit fix` executado (sem `--force`) sem alterações — permanecem as 12 vulnerabilidades descritas na entrada da v1.4.3.
+
+---
+
 *Última atualização: 2026-11-12*
 *Responsável pela manutenção: Equipe de Desenvolvimento — ATTOS Empreendimentos Imobiliários S.A.*
